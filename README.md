@@ -3,6 +3,8 @@
 Learn the vocabulary of the Quran in context: the words you meet most, how they are built from their roots,
 and how they sound in recitation.
 
+**Live site: https://islamicapplications.github.io/Quran/**
+
 ## Features
 
 - **85% Course**: the 662 most frequent words, which make up 85% of the Quran's 77,429 words, taught in
@@ -28,8 +30,10 @@ Requires Node.js 22.18 or later.
 npm install
 npm run dev      # http://localhost:3000
 npm run build    # type-check and build to dist/
-npm run preview  # serve the build
+npm run preview  # serve the build at http://localhost:3000/Quran/
 ```
+
+Every push to `main` is built and published to GitHub Pages by `.github/workflows/deploy.yml`.
 
 ## Data
 

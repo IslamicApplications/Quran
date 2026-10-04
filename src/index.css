@@ -1,0 +1,242 @@
+@import "tailwindcss";
+
+/* Class-based dark mode: <html class="dark"> is set from the theme preference (see src/hooks/useTheme.ts) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --animate-fadeIn: fade-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  --animate-slide-in-left: slide-in-left 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-slide-in-right: slide-in-right 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  --animate-scale-in: scale-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  /* Fill mode is "backwards" (not "both") so a finished animation releases its transform; otherwise the
+     animated tab wrapper stays the containing block for position: fixed modals inside it. */
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes slide-in-left {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes slide-in-right {
+    from { transform: translateX(40px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.97) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+}
+
+@layer base {
+  :root {
+    --surface-page: #f7f5ef;
+    --surface-card: #ffffff;
+    --card-border: rgb(231 229 228 / 0.9);
+    --scrollbar-thumb: #d6d3d1;
+    --scrollbar-thumb-hover: #a8a29e;
+    color-scheme: light;
+  }
+
+  :root.dark {
+    /* Muted text sits on warm-tinted boxes too; lift it so it keeps WCAG AA (4.5:1) everywhere. */
+    --color-stone-400: oklch(76% 0.01 56);
+    --surface-page: #0f0e0c;
+    --surface-card: #1c1917;
+    --card-border: rgb(68 64 60 / 0.6);
+    --scrollbar-thumb: #44403c;
+    --scrollbar-thumb-hover: #57534e;
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--surface-page);
+    color: #1e293b;
+    overflow-x: hidden;
+    transition: background-color 0.2s ease;
+  }
+
+  .dark body {
+    color: #e7e5e4;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+
+  :focus-visible {
+    outline: 2px solid #059669;
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+
+  ::selection {
+    background: #a7f3d0;
+    color: #022c22;
+  }
+
+  .dark :focus-visible {
+    outline-color: #34d399;
+  }
+}
+
+@layer components {
+  /* Primary content surface */
+  .card {
+    background: var(--surface-card);
+    border: 1px solid var(--card-border);
+    border-radius: 1.25rem;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 4px 16px -4px rgb(15 23 42 / 0.05);
+  }
+
+  /* Deep emerald panel used for every quoted verse */
+  .verse-panel {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    color: #ecfdf5;
+    background:
+      radial-gradient(120% 140% at 100% 0%, rgb(16 185 129 / 0.18), transparent 55%),
+      linear-gradient(160deg, #064e3b 0%, #022c22 100%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 8px 24px -12px rgb(2 44 34 / 0.55);
+  }
+  .verse-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0.07;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cg fill='none' stroke='%23fcd34d' stroke-width='1'%3E%3Crect x='12' y='12' width='24' height='24'/%3E%3Crect x='12' y='12' width='24' height='24' transform='rotate(45 24 24)'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  /* Feature banners (home hero, course header, sidebar card…): emerald in light mode, deep ink with an
+     emerald glow in dark mode so large green areas don't overpower the dark page. */
+  .hero-surface {
+    color: #fff;
+    background: linear-gradient(135deg, #065f46 0%, #064e3b 45%, #022c22 100%);
+  }
+  .dark .hero-surface {
+    background:
+      radial-gradient(90% 120% at 100% 0%, rgb(16 185 129 / 0.16), transparent 60%),
+      radial-gradient(60% 80% at 0% 100%, rgb(245 158 11 / 0.06), transparent 60%),
+      linear-gradient(160deg, #18201c 0%, #121714 100%);
+    box-shadow: inset 0 0 0 1px rgb(52 211 153 / 0.14), 0 12px 32px -16px rgb(0 0 0 / 0.6);
+  }
+
+  .dark .verse-panel {
+    background:
+      radial-gradient(120% 140% at 100% 0%, rgb(16 185 129 / 0.10), transparent 55%),
+      linear-gradient(160deg, #17201c 0%, #111613 100%);
+    box-shadow: inset 0 0 0 1px rgb(52 211 153 / 0.12), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  }
+  .dark .verse-panel::before {
+    opacity: 0.045;
+  }
+
+  /* Subtle eight-point-star geometric pattern for hero surfaces */
+  .geo-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%23fcd34d' stroke-opacity='0.12' stroke-width='1'%3E%3Crect x='16' y='16' width='32' height='32'/%3E%3Crect x='16' y='16' width='32' height='32' transform='rotate(45 32 32)'/%3E%3Ccircle cx='32' cy='32' r='6'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 64px 64px;
+  }
+  .dark .geo-pattern {
+    opacity: 0.55;
+  }
+
+  .dark .card {
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+  }
+
+  .glass {
+    background: rgb(255 255 255 / 0.72);
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+  }
+
+  .dark .glass {
+    background: rgb(15 14 12 / 0.72);
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Arabic typography helper classes */
+.font-quran-amiri {
+  font-family: 'Amiri', serif;
+}
+
+.font-quran-scheherazade {
+  font-family: 'Scheherazade New', serif;
+}
+
+.arabic-text {
+  direction: rtl;
+  text-align: right;
+  line-height: 1.9;
+  letter-spacing: 0;
+}
+
+.arabic-inline {
+  direction: rtl;
+  display: inline-block;
+}
+
+/* Smooth card flip for flashcards */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 3px solid var(--surface-page);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

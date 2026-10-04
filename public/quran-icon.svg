@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="24" fill="#064e3b" />
+  <circle cx="50" cy="50" r="38" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="4 2" />
+  <text x="50" y="65" font-family="'Amiri', serif" font-size="48" font-weight="bold" fill="#fef3c7" text-anchor="middle">آ</text>
+</svg>

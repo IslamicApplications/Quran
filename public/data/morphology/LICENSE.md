@@ -14,5 +14,11 @@ index (`roots.json`: root -> occurrence count and locations per lemma) and a fre
 `[lemma, root, tag, verbForm, count, sampleLocation, appearances]`), and per-surah vocabulary
 (`surahs.json`: for each surah, total word count and `[lemma, count]` pairs).
 
+Lemmas were also edited: 34 verb lemmas that were truncated, in the present tense or carried an
+ending (e.g. مَشَ, يَشْعُرُ, أُغْرِقُ) were replaced with their dictionary forms (مَشَى, شَعَرَ, أَغْرَقَ),
+listed in `src/data/lemmaFixes.json`; pronouns without a lemma were given their standard form; and
+each frequent lemma's sample occurrence was chosen by how closely its recitation matches the
+dictionary form.
+
 Regenerate with `node scripts/build-morphology.mjs`. This derived data is distributed under
 the same GPL-3.0 license.

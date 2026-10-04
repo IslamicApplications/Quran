@@ -72,7 +72,7 @@ export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
     part === 'arabic' ? `${arabicReciter} (Arabic)` : 'Ibrahim Walk (English, Saheeh International)';
 
   return (
-    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 sm:pr-3 rounded-2xl bg-white dark:bg-stone-900 ring-1 ring-stone-200/80 dark:ring-stone-700/80 text-xs">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 p-2 pr-3 rounded-2xl bg-white dark:bg-stone-900 ring-1 ring-stone-200/80 dark:ring-stone-700/80 text-xs">
       <div className="flex items-center gap-3">
         <button
           onClick={toggle}
@@ -111,7 +111,7 @@ export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
       <div
         role="radiogroup"
         aria-label="Audio language"
-        className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 ring-1 ring-stone-200/70 dark:ring-stone-700/70 self-start sm:self-auto"
+        className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 ring-1 ring-stone-200/70 dark:ring-stone-700/70"
       >
         <Languages className="w-3.5 h-3.5 text-stone-400 mx-1" />
         {MODES.map((m) => (

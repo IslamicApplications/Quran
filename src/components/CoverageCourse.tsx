@@ -15,6 +15,7 @@ import { functionWordMeaning, vocabularyGloss } from '../data/functionWordMeanin
 import { useKnownLemmas, knownLemmasStore } from '../hooks/useKnownLemmas';
 import { useModalBehavior } from '../hooks/useModalBehavior';
 import { LoadingBlock, ErrorBlock, useAsync, WordAudioButton, TagBadge } from './QuranWordBits';
+import { VerseAudioBar } from './VerseAudioBar';
 
 interface CoverageCourseProps {
   onOpenVerse?: (verseKey: string) => void;
@@ -546,6 +547,8 @@ const StudySession: React.FC<{
                     </p>
                   </div>
                 )}
+                {/* Full recitation of the sample verse; stops when the learner moves to the next word */}
+                {data && <VerseAudioBar verseKey={data.verse.key} />}
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   <button
                     onClick={() => answer(false)}

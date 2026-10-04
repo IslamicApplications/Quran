@@ -14,7 +14,7 @@ import { sameSpokenForm } from '../services/arabicForm';
 import { functionWordMeaning, vocabularyGloss } from '../data/functionWordMeanings';
 import { useKnownLemmas, knownLemmasStore } from '../hooks/useKnownLemmas';
 import { useModalBehavior } from '../hooks/useModalBehavior';
-import { LoadingBlock, ErrorBlock, useAsync, WordAudioButton, TagBadge } from './QuranWordBits';
+import { LoadingBlock, ErrorBlock, useAsync, WordAudioButton, TagBadge, RecitedVerseText } from './QuranWordBits';
 import { VerseAudioBar } from './VerseAudioBar';
 
 interface CoverageCourseProps {
@@ -533,15 +533,7 @@ const StudySession: React.FC<{
                 </div>
                 {data && (
                   <div className="verse-panel rounded-2xl p-4 space-y-2">
-                    <p className="font-quran-amiri text-xl leading-loose arabic-text text-amber-50">
-                      {data.verse.words.map((w, i) => (
-                        <React.Fragment key={w.location}>
-                          <span className={i === targetIndex ? 'text-emerald-950 bg-amber-300 rounded px-1' : ''}>
-                            {w.arabic}
-                          </span>{' '}
-                        </React.Fragment>
-                      ))}
-                    </p>
+                    <RecitedVerseText verse={data.verse} marked={targetIndex} className="text-xl leading-loose text-amber-50" />
                     <p className="text-xs text-emerald-100/90 italic">
                       “{data.verse.translation}” ({data.verse.key})
                     </p>

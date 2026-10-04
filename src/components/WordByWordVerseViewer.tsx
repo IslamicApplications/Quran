@@ -4,7 +4,8 @@ import { VERSE_TREEBANKS } from '../data/corpusData';
 import { SURAH_LIST } from '../data/surahList';
 import { fetchVerse, getRootIndex, formatRoot, describeTag, QWord } from '../services/quranCom';
 import { VerseAudioBar } from './VerseAudioBar';
-import { TagBadge, WordAudioButton, LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
+import { TagBadge, WordAudioButton, LoadingBlock, ErrorBlock, useAsync, RecitedVerseText } from './QuranWordBits';
+import { useRecitedWord } from '../hooks/useRecitedWord';
 
 interface WordByWordVerseViewerProps {
   verseKey?: string;
@@ -57,6 +58,7 @@ export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
   const next = () =>
     ayah < surahInfo.totalAyahs ? goTo(surah, ayah + 1) : surah < 114 && goTo(surah + 1, 1);
 
+  const recited = useRecitedWord(verse?.key);
   const selectedWord = isCurrent && selectedIndex !== null ? verse?.words[selectedIndex] : undefined;
 
   return (
@@ -142,9 +144,7 @@ export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
                 </span>
                 <span className="font-quran-amiri text-base">{surahInfo.nameArabic}</span>
               </div>
-              <p className="font-quran-amiri text-3xl sm:text-4xl arabic-text text-amber-100 leading-loose">
-                {verse.arabic}
-              </p>
+              <RecitedVerseText verse={verse} className="text-3xl sm:text-4xl text-amber-100 leading-loose" />
               <p className="text-sm text-emerald-100 italic pt-2 border-t border-emerald-800/60">
                 “{verse.translation}”
                 <span className="not-italic text-emerald-400 text-xs ml-2">— Saheeh International</span>
@@ -173,6 +173,7 @@ export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
                     key={w.location}
                     word={w}
                     selected={selectedIndex === idx}
+                    recited={recited === w.position}
                     onSelect={() => setSelectedIndex(selectedIndex === idx ? null : idx)}
                   />
                 ))}
@@ -205,7 +206,12 @@ export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
   );
 };
 
-const WordCard: React.FC<{ word: QWord; selected: boolean; onSelect: () => void }> = ({ word, selected, onSelect }) => (
+const WordCard: React.FC<{ word: QWord; selected: boolean; recited: boolean; onSelect: () => void }> = ({
+  word,
+  selected,
+  recited,
+  onSelect
+}) => (
   <div
     role="button"
     tabIndex={0}
@@ -214,6 +220,8 @@ const WordCard: React.FC<{ word: QWord; selected: boolean; onSelect: () => void 
     className={`relative p-4 rounded-2xl text-center transition-all cursor-pointer flex flex-col items-center gap-1.5 ring-1 ${
       selected
         ? 'bg-amber-50 dark:bg-amber-950/20 ring-2 ring-emerald-600 shadow-sm'
+        : recited
+        ? 'bg-emerald-50 dark:bg-emerald-950/40 ring-2 ring-emerald-400 dark:ring-emerald-600'
         : 'bg-stone-50 dark:bg-stone-900 ring-stone-200 dark:ring-stone-700 hover:bg-white dark:hover:bg-stone-900 hover:ring-emerald-300 dark:hover:ring-emerald-700'
     }`}
   >

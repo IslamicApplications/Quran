@@ -321,9 +321,35 @@ interface ApiVerse {
   text_uthmani: string;
   words: ApiWord[];
   translations?: { text: string }[];
+  /** Word timings of the recitation: [index, wordPosition, startMs, endMs] */
+  audio?: { segments?: number[][] };
 }
 
-const VERSE_QUERY = `words=true&word_fields=text_uthmani,location&fields=text_uthmani&translations=${DEFAULT_TRANSLATION_ID}`;
+const VERSE_QUERY = `words=true&word_fields=text_uthmani,location&fields=text_uthmani&translations=${DEFAULT_TRANSLATION_ID}&audio=${DEFAULT_RECITATION_ID}`;
+
+/** When a word is recited in the verse's Alafasy recording, in milliseconds. */
+export interface WordTiming {
+  position: number;
+  start: number;
+  end: number;
+}
+
+/**
+ * Quran.com's timings name the word by position. Across all 6,236 verses, 6,208 cover every word in order
+ * and 25 skip a word or two, whose sound is folded into a neighbour's timing. 13:1 counts الٓمٓر as two
+ * words, so its positions are shifted by one but its count matches: take those in order. 10:1 and 37:130
+ * point past the last word; they get no timings.
+ */
+const toTimings = (segments: number[][] | undefined, wordCount: number): WordTiming[] | undefined => {
+  if (!segments?.length) return undefined;
+  const positions = segments.map((seg) => seg[1]);
+  const inOrder = positions.every((p, i) => p >= 1 && p <= wordCount && (i === 0 || p > positions[i - 1]));
+  if (!inOrder && segments.length !== wordCount) return undefined;
+  return segments.map(([, position, start, end], i) => ({ position: inOrder ? position : i + 1, start, end }));
+};
+
+// Filled as verses load, so following a recitation needs no extra request for a verse already on screen
+const timingsByKey = new Map<string, WordTiming[] | undefined>();
 
 /**
  * Word-by-word audio files are numbered by word position (wbw/002_002_005.mp3 is the 5th word of 2:2).
@@ -347,6 +373,7 @@ const toVerse = (v: ApiVerse, morph: SurahMorphology): QVerse => {
       audioUrl: w.audio_url ? wordAudioUrl(surah, ayah, w.position) : undefined,
       ...parseMorph(ayahMorph[w.position - 1])
     }));
+  timingsByKey.set(v.verse_key, toTimings(v.audio?.segments, words.length));
 
   return {
     key: v.verse_key,
@@ -369,6 +396,12 @@ export const fetchVerse = (key: string): Promise<QVerse> =>
     ]);
     return toVerse(data.verse, morph);
   });
+
+/** Word timings for the verse's default recitation (verseAudioUrl), if Quran.com has usable ones. */
+export const getVerseTimings = async (key: string): Promise<WordTiming[] | undefined> => {
+  if (!timingsByKey.has(key)) await fetchVerse(key);
+  return timingsByKey.get(key);
+};
 
 export interface ChapterPage {
   verses: QVerse[];

@@ -31,6 +31,7 @@ import {
 } from '../services/quranCom';
 import { AppSettings } from '../types';
 import { useKnownLemmas, knownLemmasStore } from '../hooks/useKnownLemmas';
+import { followRecitation, useRecitedWord } from '../hooks/useRecitedWord';
 import { LoadingBlock, ErrorBlock, useAsync, WordAudioButton } from './QuranWordBits';
 
 interface SurahReaderProps {
@@ -310,6 +311,7 @@ const SurahView: React.FC<
       const key = `${surah}:${ayah}`;
       const audio = playAudio(part === 'arabic' ? verseAudioUrl(key) : englishVerseAudioUrl(key));
       audioRef.current = audio;
+      if (part === 'arabic') followRecitation(audio, key);
       setPlaying({ key, part });
       document.getElementById(`ayah-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       audio.onpause = () => audioRef.current === audio && !audio.ended && setPlaying(null);
@@ -474,29 +476,14 @@ const SurahView: React.FC<
                   </div>
 
                   <div className="flex-1 min-w-0 space-y-3">
-                    <p dir="rtl" className={`${arabicFont} ${ARABIC_SIZES[settings.arabicFontSize]} leading-[2.3] text-right`}>
-                      {v.words.map((w) => {
-                        const isKnown = !!w.lemma && known.has(w.lemma);
-                        const isSelected = selected?.location === w.location;
-                        return (
-                          <React.Fragment key={w.location}>
-                            <button
-                              onClick={() => setSelected(isSelected ? null : w)}
-                              className={`rounded-md px-0.5 leading-[1.5] align-baseline transition-colors cursor-pointer ${
-                                isSelected
-                                  ? 'bg-emerald-800 text-white'
-                                  : highlight && !isKnown
-                                  ? 'text-amber-900 dark:text-amber-200 bg-amber-100/60 dark:bg-amber-900/25 hover:bg-amber-200/70 dark:hover:bg-amber-800/50'
-                                  : 'text-stone-900 dark:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800'
-                              }`}
-                            >
-                              {w.arabic}
-                            </button>{' '}
-                          </React.Fragment>
-                        );
-                      })}
-                      <span className="text-emerald-700/70 dark:text-emerald-300 text-[0.7em] select-none">﴿{v.ayah.toLocaleString('ar-EG')}﴾</span>
-                    </p>
+                    <AyahWords
+                      verse={v}
+                      className={`${arabicFont} ${ARABIC_SIZES[settings.arabicFontSize]}`}
+                      known={known}
+                      highlightUnknown={highlight}
+                      selectedLocation={selected?.location}
+                      onSelect={setSelected}
+                    />
                     {showTranslation && (
                       <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
                         {playing?.key === v.key && playing.part === 'english' && (
@@ -669,3 +656,52 @@ const WordSheet: React.FC<{
     </div>
   );
 };
+
+/**
+ * One ayah's words. Memoised, so the recitation highlight moving through a verse re-renders that verse only.
+ */
+const AyahWords = React.memo(function AyahWords({
+  verse,
+  className,
+  known,
+  highlightUnknown,
+  selectedLocation,
+  onSelect
+}: {
+  verse: QVerse;
+  className: string;
+  known: ReadonlySet<string>;
+  highlightUnknown: boolean;
+  selectedLocation?: string;
+  onSelect: React.Dispatch<React.SetStateAction<QWord | null>>;
+}) {
+  const recited = useRecitedWord(verse.key);
+  return (
+    <p dir="rtl" className={`${className} leading-[2.3] text-right`}>
+      {verse.words.map((w) => {
+        const isKnown = !!w.lemma && known.has(w.lemma);
+        const isSelected = selectedLocation === w.location;
+        return (
+          <React.Fragment key={w.location}>
+            <button
+              onClick={() => onSelect(isSelected ? null : w)}
+              aria-current={recited === w.position ? 'true' : undefined}
+              className={`rounded-md px-0.5 leading-[1.5] align-baseline transition-colors cursor-pointer ${
+                isSelected
+                  ? 'bg-emerald-800 text-white'
+                  : recited === w.position
+                  ? 'bg-emerald-200 dark:bg-emerald-700/70 text-emerald-950 dark:text-white'
+                  : highlightUnknown && !isKnown
+                  ? 'text-amber-900 dark:text-amber-200 bg-amber-100/60 dark:bg-amber-900/25 hover:bg-amber-200/70 dark:hover:bg-amber-800/50'
+                  : 'text-stone-900 dark:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800'
+              }`}
+            >
+              {w.arabic}
+            </button>{' '}
+          </React.Fragment>
+        );
+      })}
+      <span className="text-emerald-700/70 dark:text-emerald-300 text-[0.7em] select-none">﴿{verse.ayah.toLocaleString('ar-EG')}﴾</span>
+    </p>
+  );
+});

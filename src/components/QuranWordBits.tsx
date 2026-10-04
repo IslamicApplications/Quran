@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Volume2, Loader2, AlertTriangle, RotateCw } from 'lucide-react';
-import { describeTag, tagGroup, playAudio } from '../services/quranCom';
+import { describeTag, tagGroup, playAudio, QVerse } from '../services/quranCom';
+import { useRecitedWord } from '../hooks/useRecitedWord';
 
 const GROUP_STYLES = {
   verb: 'bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 ring-sky-200 dark:ring-sky-800',
@@ -99,3 +100,34 @@ export function useAsync<T>(load: () => Promise<T>, deps: React.DependencyList) 
 
   return { ...state, retry: () => setAttempt((n) => n + 1) };
 }
+
+/**
+ * A verse's words for the dark verse panel, with the word being recited highlighted while its recitation
+ * plays. `marked` is a word index to pick out permanently (the course's sample word).
+ */
+export const RecitedVerseText: React.FC<{ verse: QVerse; className?: string; marked?: number }> = ({
+  verse,
+  className = '',
+  marked
+}) => {
+  const recited = useRecitedWord(verse.key);
+  return (
+    <p className={`font-quran-amiri arabic-text ${className}`}>
+      {verse.words.map((w, i) => (
+        <React.Fragment key={w.location}>
+          <span
+            aria-current={recited === w.position ? 'true' : undefined}
+            className={`rounded transition-colors ${
+              i === marked
+                ? `px-1 text-emerald-950 bg-amber-300 ${recited === w.position ? 'ring-2 ring-white' : ''}`
+                : // Padding inside a negative margin, so the highlight doesn't move the words around it
+                  `px-1 -mx-1 ${recited === w.position ? 'text-white bg-emerald-500/45' : ''}`
+            }`}
+          >
+            {w.arabic}
+          </span>{' '}
+        </React.Fragment>
+      ))}
+    </p>
+  );
+};

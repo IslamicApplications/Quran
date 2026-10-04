@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Loader2, Languages } from 'lucide-react';
 import { playAudio, englishVerseAudioUrl, verseAudioUrl } from '../services/quranCom';
+import { followRecitation } from '../hooks/useRecitedWord';
 
 type Mode = 'arabic' | 'english' | 'both';
 
@@ -50,6 +51,8 @@ export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
   const playPart = (which: 'arabic' | 'english', thenEnglish: boolean) => {
     const audio = playAudio(which === 'arabic' ? arabic : english);
     audioRef.current = audio;
+    // Word timings exist only for the default recitation, not a lesson's own recording
+    if (which === 'arabic' && !arabicUrl) followRecitation(audio, verseKey);
     setPart(which);
     setStatus('loading');
     audio.onplaying = () => setStatus('playing');

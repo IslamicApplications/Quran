@@ -15,7 +15,24 @@ import {
 } from 'lucide-react';
 import { QuranWord, DifficultyLevel, Language, AppSettings, UserProgress, StudyList } from '../types';
 import { VerseAudioBar } from './VerseAudioBar';
+import { RecitedVerseText, useSampleVerse } from './QuranWordBits';
 import { isDueForReview } from '../services/storage';
+
+/** The card's verse in full, following the recitation; the card's excerpt until it loads. */
+const CardVerse: React.FC<{ verse: QuranWord['primaryVerse'] }> = ({ verse }) => {
+  const sample = useSampleVerse(`${verse.surahNumber}:${verse.ayahNumber}`, verse.highlightedWord);
+  const textClass = 'text-base sm:text-lg text-amber-100 text-right leading-relaxed';
+  return (
+    <>
+      {sample ? (
+        <RecitedVerseText verse={sample.verse} marked={sample.marked} className={textClass} />
+      ) : (
+        <p className={`font-quran-amiri arabic-text ${textClass}`}>{verse.arabicVerseText}</p>
+      )}
+      <p className="text-emerald-100 italic text-[11px]">"{sample?.verse.translation || verse.translation}"</p>
+    </>
+  );
+};
 
 interface FlashcardViewerProps {
   words: QuranWord[];
@@ -269,18 +286,11 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
                   <span>Surah {currentWord.primaryVerse.surahNameTransliteration} ({currentWord.primaryVerse.surahNumber}:{currentWord.primaryVerse.ayahNumber})</span>
                   <span>{currentWord.primaryVerse.surahNameArabic}</span>
                 </div>
-                <p className="font-quran-amiri text-base sm:text-lg text-amber-100 arabic-text text-right leading-relaxed">
-                  {currentWord.primaryVerse.arabicVerseText}
-                </p>
-                <p className="text-emerald-100 italic text-[11px]">"{currentWord.primaryVerse.translation}"</p>
+                <CardVerse verse={currentWord.primaryVerse} />
               </div>
 
               {/* Audio Player in card back */}
-              <VerseAudioBar
-                verseKey={`${currentWord.primaryVerse.surahNumber}:${currentWord.primaryVerse.ayahNumber}`}
-                arabicUrl={currentWord.primaryVerse.audioUrl}
-                arabicReciter={currentWord.primaryVerse.audioReciter}
-              />
+              <VerseAudioBar verseKey={`${currentWord.primaryVerse.surahNumber}:${currentWord.primaryVerse.ayahNumber}`} />
             </div>
           )}
 

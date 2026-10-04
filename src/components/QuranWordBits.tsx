@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Volume2, Loader2, AlertTriangle, RotateCw } from 'lucide-react';
-import { describeTag, tagGroup, playAudio, QVerse } from '../services/quranCom';
+import { describeTag, tagGroup, playAudio, fetchVerse, findWordInVerse, QVerse } from '../services/quranCom';
 import { useRecitedWord } from '../hooks/useRecitedWord';
 
 const GROUP_STYLES = {
@@ -105,14 +105,15 @@ export function useAsync<T>(load: () => Promise<T>, deps: React.DependencyList) 
  * A verse's words for the dark verse panel, with the word being recited highlighted while its recitation
  * plays. `marked` is a word index to pick out permanently (the course's sample word).
  */
-export const RecitedVerseText: React.FC<{ verse: QVerse; className?: string; marked?: number }> = ({
+export const RecitedVerseText: React.FC<{ verse: QVerse; className?: string; marked?: number; fontClass?: string }> = ({
   verse,
   className = '',
-  marked
+  marked,
+  fontClass = 'font-quran-amiri'
 }) => {
   const recited = useRecitedWord(verse.key);
   return (
-    <p className={`font-quran-amiri arabic-text ${className}`}>
+    <p className={`${fontClass} arabic-text ${className}`}>
       {verse.words.map((w, i) => (
         <React.Fragment key={w.location}>
           <span
@@ -131,3 +132,14 @@ export const RecitedVerseText: React.FC<{ verse: QVerse; className?: string; mar
     </p>
   );
 };
+
+/**
+ * A lesson's sample verse in full from Quran.com, so it can follow the recitation, with the index of the
+ * lesson's word in it. Lessons quote an excerpt, but the recitation plays the whole ayah.
+ */
+export const useSampleVerse = (verseKey: string, highlightedWord: string) =>
+  useAsync(async () => {
+    const [verse, word] = await Promise.all([fetchVerse(verseKey), findWordInVerse(verseKey, highlightedWord)]);
+    const marked = verse.words.findIndex((w) => w.location === word?.location);
+    return { verse, marked: marked < 0 ? undefined : marked };
+  }, [verseKey, highlightedWord]).data;

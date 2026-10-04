@@ -17,7 +17,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { QuranWord, DifficultyLevel, Language, AppSettings, UserProgress } from '../types';
-import { WordAudioButton, useAsync } from './QuranWordBits';
+import { WordAudioButton, useAsync, useSampleVerse, RecitedVerseText } from './QuranWordBits';
 import { findWordInVerse } from '../services/quranCom';
 import { VerseAudioBar } from './VerseAudioBar';
 
@@ -66,6 +66,9 @@ export const LessonCard: React.FC<LessonCardProps> = ({
     word.explanations.beginner.en!;
 
   const primaryVerse = word.primaryVerse;
+  const verseKey = `${primaryVerse.surahNumber}:${primaryVerse.ayahNumber}`;
+  // The whole ayah, so the recited word can be followed; the lesson's excerpt until it loads
+  const sample = useSampleVerse(verseKey, primaryVerse.highlightedWord);
   const currentQuestion = word.practiceQuestions?.[0];
 
   // Font size styling
@@ -183,7 +186,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
                 {word.arabic}
               </h2>
               <HeadwordAudio
-                verseKey={`${primaryVerse.surahNumber}:${primaryVerse.ayahNumber}`}
+                verseKey={verseKey}
                 highlightedWord={primaryVerse.highlightedWord}
               />
             </div>
@@ -246,31 +249,36 @@ export const LessonCard: React.FC<LessonCardProps> = ({
               <span>Hafs ʿan ʿĀṣim · Medina Script</span>
             </div>
 
-            {/* Arabic Verse with word highlighted */}
-            <p
-              className={`${arabicFontClass} ${fontSizes[settings.arabicFontSize]} arabic-text text-right text-amber-100 leading-loose`}
-            >
-              {primaryVerse.arabicVerseText}
-            </p>
+            {/* Arabic Verse with the lesson's word marked and the recited word followed */}
+            {sample ? (
+              <RecitedVerseText
+                verse={sample.verse}
+                marked={sample.marked}
+                fontClass={arabicFontClass}
+                className={`${fontSizes[settings.arabicFontSize]} text-right text-amber-100 leading-loose`}
+              />
+            ) : (
+              <p
+                className={`${arabicFontClass} ${fontSizes[settings.arabicFontSize]} arabic-text text-right text-amber-100 leading-loose`}
+              >
+                {primaryVerse.arabicVerseText}
+              </p>
+            )}
 
             {/* Translation with Attribution */}
             <div className="pt-2 border-t border-emerald-800/60">
               <p className="text-emerald-100 text-sm italic leading-relaxed">
-                "{primaryVerse.translation}"
+                "{sample?.verse.translation || primaryVerse.translation}"
               </p>
               <div className="mt-1 text-[11px] text-emerald-400 flex items-center justify-between">
-                <span>Translation: {primaryVerse.translationSource}</span>
+                <span>Translation: {sample ? 'Saheeh International' : primaryVerse.translationSource}</span>
                 <span className="text-emerald-300 font-medium">Verified Citation</span>
               </div>
             </div>
           </div>
 
           {/* Verse Audio Player Bar */}
-          <VerseAudioBar
-            verseKey={`${primaryVerse.surahNumber}:${primaryVerse.ayahNumber}`}
-            arabicUrl={primaryVerse.audioUrl}
-            arabicReciter={primaryVerse.audioReciter}
-          />
+          <VerseAudioBar verseKey={verseKey} />
 
           {/* Contextual Meaning Explanation */}
           <div className="bg-stone-50 dark:bg-stone-900 rounded-2xl p-4 ring-1 ring-stone-200/70 dark:ring-stone-700/70 text-sm text-stone-700 dark:text-stone-300 space-y-1.5">

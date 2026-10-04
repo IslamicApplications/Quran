@@ -10,8 +10,9 @@ and how they sound in recitation.
 - **85% Course**: the 662 most frequent words, which make up 85% of the Quran's 77,429 words, taught in
   order of frequency in four stages (50%, 70%, 80%, 85%). Each card shows the word as recited in a sample
   verse, with its audio and meaning, and every word you mark as known raises your coverage.
-- **Surah Reader**: read any surah with the words you don't know yet highlighted, see how much of each
-  surah you already recognise, and play the recitation verse by verse.
+- **Surah Reader**: read any surah, or the Quran juz by juz, with the words you don't know yet highlighted,
+  see how much of each surah or juz you already recognise, and play the recitation verse by verse with the
+  word being recited highlighted. Juz view adds transliteration and a choice of 12 translations.
 - **Word by Word**: any verse, with each word's meaning, root, grammar and pronunciation.
 - **Root Dictionary**: all 1,651 roots, every word built from them and every place they appear.
 - **Vocabulary lessons** with explanations at three levels, **flashcards** with spaced repetition, a
@@ -40,6 +41,7 @@ Every push to `main` is built and published to GitHub Pages by `.github/workflow
 | What | Source |
 | --- | --- |
 | Verse text, Saheeh International translation, word-by-word meanings and word audio | [Quran.com API v4](https://api-docs.quran.com/), fetched at runtime |
+| Juz text, transliteration and 12 translations | [UmmahAPI](https://ummahapi.com/quran-api), fetched at runtime |
 | Verse recitation | Mishary Rashid Alafasy, via Quran.com |
 | English translation audio | Ibrahim Walk, via [EveryAyah.com](https://everyayah.com) |
 | Roots, lemmas and parts of speech | [Quranic Arabic Corpus](https://corpus.quran.com) morphology (GPL-3.0), bundled in `public/data/morphology` |
@@ -62,7 +64,8 @@ to the corpus data.
 
 ```
 src/components/   tabs and UI (CoverageCourse, SurahReader, WordByWordVerseViewer, …)
-src/services/     Quran.com client and data loading (quranCom.ts), local storage, Arabic form matching
+src/services/     Quran.com client and data loading (quranCom.ts), UmmahAPI juz client (ummahApi.ts), local
+                  storage, Arabic form matching
 src/data/         curated lessons, surah list, lemma corrections, particle meanings
 src/hooks/        shared stores: known words, theme, modal behaviour
 scripts/          build-morphology.mjs, which generates public/data/morphology
@@ -73,5 +76,5 @@ scripts/          build-morphology.mjs, which generates public/data/morphology
 [GPL-3.0](LICENSE). The bundled morphology data is derived from the Quranic Arabic Corpus, which is
 licensed under the GNU General Public License v3.0, so the project is distributed under the same licence.
 
-Quranic text, translation and recitation audio are loaded from Quran.com and EveryAyah.com at runtime and
+Quranic text, translation and recitation audio are loaded from Quran.com, UmmahAPI and EveryAyah.com at runtime and
 remain subject to their providers' terms.

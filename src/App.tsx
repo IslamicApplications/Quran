@@ -53,7 +53,7 @@ const VALID_TABS: ActiveTab[] = [
   'progress'
 ];
 
-// Routes: #/<tab>, plus #/reader/<surah> for a surah open in the reader
+// Routes: #/<tab>, plus #/reader/<surah> or #/reader/juz/<juz> for a surah or juz open in the reader
 const hashParts = () => window.location.hash.replace(/^#\/?/, '').split('/');
 
 const tabFromHash = (): ActiveTab => {
@@ -65,6 +65,12 @@ const surahFromHash = (): number | undefined => {
   const [tab, n] = hashParts();
   const surah = Number(n);
   return tab === 'reader' && surah >= 1 && surah <= 114 ? surah : undefined;
+};
+
+const juzFromHash = (): number | undefined => {
+  const [tab, kind, n] = hashParts();
+  const juz = Number(n);
+  return tab === 'reader' && kind === 'juz' && juz >= 1 && juz <= 30 ? juz : undefined;
 };
 
 const TabFallback = () => (
@@ -83,6 +89,7 @@ export function App() {
   const [wbwVerseKey, setWbwVerseKey] = useState<string>('1:2');
   const [rootDictRoot, setRootDictRoot] = useState<string | undefined>(undefined);
   const [readerSurah, setReaderSurah] = useState<number | undefined>(surahFromHash);
+  const [readerJuz, setReaderJuz] = useState<number | undefined>(juzFromHash);
 
   // Storage State
   const [savedWordIds, setSavedWordIds] = useState<string[]>(StorageService.getSavedWordIds());
@@ -103,7 +110,10 @@ export function App() {
 
   const setActiveTab = useCallback((tab: ActiveTab) => {
     setActiveTabState(tab);
-    if (tab === 'reader') setReaderSurah(undefined);
+    if (tab === 'reader') {
+      setReaderSurah(undefined);
+      setReaderJuz(undefined);
+    }
     if (window.location.hash !== `#/${tab}`) {
       window.history.pushState(null, '', `#/${tab}`);
     }
@@ -115,6 +125,7 @@ export function App() {
     const onPop = () => {
       setActiveTabState(tabFromHash());
       setReaderSurah(surahFromHash());
+      setReaderJuz(juzFromHash());
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -124,8 +135,17 @@ export function App() {
 
   const openSurah = (surah: number | undefined) => {
     setReaderSurah(surah);
+    setReaderJuz(undefined);
     setActiveTabState('reader');
     window.history.pushState(null, '', surah ? `#/reader/${surah}` : '#/reader');
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  };
+
+  const openJuz = (juz: number | undefined) => {
+    setReaderJuz(juz);
+    setReaderSurah(undefined);
+    setActiveTabState('reader');
+    window.history.pushState(null, '', juz ? `#/reader/juz/${juz}` : '#/reader');
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   };
 
@@ -363,6 +383,8 @@ export function App() {
                   <SurahReader
                     surah={readerSurah}
                     onSelectSurah={openSurah}
+                    juz={readerJuz}
+                    onSelectJuz={openJuz}
                     settings={settings}
                     onOpenVerse={openVerse}
                     onOpenRoot={openRoot}

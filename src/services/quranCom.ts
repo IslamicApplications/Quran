@@ -58,7 +58,7 @@ export interface RootIndexEntry {
 
 const memo = new Map<string, Promise<unknown>>();
 
-const cached = <T>(key: string, load: () => Promise<T>): Promise<T> => {
+export const cached = <T>(key: string, load: () => Promise<T>): Promise<T> => {
   if (!memo.has(key)) {
     const p = load().catch((err) => {
       memo.delete(key); // allow retry after a network failure
@@ -69,7 +69,7 @@ const cached = <T>(key: string, load: () => Promise<T>): Promise<T> => {
   return memo.get(key) as Promise<T>;
 };
 
-const getJson = async <T>(url: string): Promise<T> => {
+export const getJson = async <T>(url: string): Promise<T> => {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return res.json() as Promise<T>;
@@ -214,7 +214,7 @@ export const getSurahMorphology = (surah: number): Promise<SurahMorphology> =>
 export const getRootIndex = (): Promise<Record<string, RootIndexEntry>> =>
   cached('roots', () => getJson<Record<string, RootIndexEntry>>(`${MORPHOLOGY_BASE}roots.json`));
 
-const parseMorph = (entry?: string) => {
+export const parseMorph = (entry?: string) => {
   if (!entry) return {};
   const [root, lemma, tag, verbForm] = entry.split('|');
   return { root: root || undefined, lemma: lemma || undefined, tag: tag || undefined, verbForm: verbForm || undefined };

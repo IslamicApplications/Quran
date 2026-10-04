@@ -315,7 +315,7 @@ const SurahView: React.FC<
       setPlaying({ key, part });
       document.getElementById(`ayah-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       audio.onpause = () => audioRef.current === audio && !audio.ended && setPlaying(null);
-      audio.onerror = () => setPlaying(null);
+      audio.onerror = () => audioRef.current === audio && setPlaying(null);
       audio.onended = () => {
         if (part === 'arabic' && audioMode === 'both') return playVerse(ayah, 'english');
         if (ayah < info.totalAyahs) playVerse(ayah + 1, audioMode === 'english' ? 'english' : 'arabic');

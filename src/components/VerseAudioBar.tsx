@@ -56,7 +56,7 @@ export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
     setPart(which);
     setStatus('loading');
     audio.onplaying = () => setStatus('playing');
-    audio.onerror = () => setStatus('error');
+    audio.onerror = () => audioRef.current === audio && setStatus('error');
     // Another clip elsewhere in the app took over
     audio.onpause = () => audioRef.current === audio && !audio.ended && setStatus('idle');
     audio.onended = () => {

@@ -371,7 +371,13 @@ export function App() {
 
                 {activeTab === 'course' && <CoverageCourse onOpenVerse={openVerse} />}
 
-                {activeTab === 'top100' && <Top100VocabularyExplorer onSelectWord={handleSelectWordInDictionary} />}
+                {activeTab === 'top100' && (
+                  <Top100VocabularyExplorer
+                    onSelectWord={handleSelectWordInDictionary}
+                    onOpenRoot={openRoot}
+                    onOpenVerse={openVerse}
+                  />
+                )}
 
                 {activeTab === 'wordbyword' && (
                   <WordByWordVerseViewer

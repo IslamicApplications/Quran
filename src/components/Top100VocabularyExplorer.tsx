@@ -22,25 +22,30 @@ import { normalizeArabic } from '../services/quranApi';
 import { QuranWord } from '../types';
 
 const stripArticle = (text: string) => normalizeArabic(text).replace(/^ال/, '');
-const rootKey = (root?: string) => normalizeArabic(root || '').replace(/\s+/g, '');
 
-// Link a Top-100 entry to a full dictionary lesson: same word first, otherwise same root.
-const findDictionaryLesson = (word: HighFrequencyWord): { lesson: QuranWord; exact: boolean } | null => {
+// The Dictionary's written lesson for this exact word, if there is one
+const findDictionaryLesson = (word: HighFrequencyWord): QuranWord | undefined => {
   const target = stripArticle(word.arabic);
-  const exact = ALL_VERIFIED_WORDS.find((w) => stripArticle(w.arabic) === target);
-  if (exact) return { lesson: exact, exact: true };
-  const key = rootKey(word.rootArabic);
-  const related = key ? ALL_VERIFIED_WORDS.find((w) => rootKey(w.rootArabic) === key) : undefined;
-  return related ? { lesson: related, exact: false } : null;
+  return ALL_VERIFIED_WORDS.find((w) => stripArticle(w.arabic) === target);
 };
+
+/** "ر ح م" -> "رحم", the Root Dictionary's key (roots here come from the corpus data). */
+const rootKey = (root?: string) => (root || '').replace(/\s+/g, '');
 
 interface Top100VocabularyExplorerProps {
   onSelectWord?: (wordId: string) => void;
+  onOpenRoot?: (root: string) => void;
+  onOpenVerse?: (verseKey: string) => void;
   onOpenPracticeWithCategory?: (categoryId: number) => void;
 }
 
+const linkClass =
+  'text-xs text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 dark:hover:text-emerald-100 font-bold flex items-center gap-1 cursor-pointer shrink-0';
+
 export const Top100VocabularyExplorer: React.FC<Top100VocabularyExplorerProps> = ({
   onSelectWord,
+  onOpenRoot,
+  onOpenVerse,
   onOpenPracticeWithCategory
 }) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0); // 0 = all
@@ -227,29 +232,33 @@ export const Top100VocabularyExplorer: React.FC<Top100VocabularyExplorerProps> =
                 </p>
               </div>
 
-              {/* Interactive Actions */}
+              {/* Every word opens its root in the Root Dictionary and its sample verse word by word */}
               {(() => {
-                const match = findDictionaryLesson(word);
+                const lesson = findDictionaryLesson(word);
+                const root = rootKey(word.rootArabic);
+                const open = (action: () => void) => (e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  action();
+                };
                 return (
-                  <div className="pt-2 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between gap-2">
-                    {match ? (
-                      <span className="text-[10px] text-stone-400">
-                        {match.exact ? 'Full lesson available' : (
-                          <>Related root lesson: <span className="font-quran-amiri text-xs text-emerald-900 dark:text-emerald-200">{match.lesson.arabic}</span></>
-                        )}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-stone-400">Full lesson coming soon</span>
+                  <div className="pt-2 border-t border-stone-100 dark:border-stone-800 flex flex-wrap items-center gap-x-4 gap-y-2">
+                    {onSelectWord && lesson && (
+                      <button onClick={open(() => onSelectWord(lesson.id))} className={linkClass}>
+                        <span>Full lesson</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
                     )}
-                    {onSelectWord && match && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectWord(match.lesson.id);
-                        }}
-                        className="text-xs text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 dark:hover:text-emerald-100 font-bold flex items-center gap-1 cursor-pointer shrink-0"
-                      >
-                        <span>{match.exact ? 'View in Dictionary' : 'View root lesson'}</span>
+                    {onOpenRoot && root && (
+                      <button onClick={open(() => onOpenRoot(root))} className={linkClass}>
+                        <span>
+                          Root <span className="font-quran-amiri text-sm">{word.rootArabic}</span>
+                        </span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {onOpenVerse && (
+                      <button onClick={open(() => onOpenVerse(word.sampleVerseLocation))} className={linkClass}>
+                        <span>Verse {word.sampleVerseLocation} word by word</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     )}

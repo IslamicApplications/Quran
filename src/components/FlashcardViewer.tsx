@@ -354,8 +354,11 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
     </div>
   );
 
-  // A course deck, or due course words, can't be built until the word list has loaded
-  const waitingForCourse = (courseStage || filterMode === 'due' || filterMode === NEXT_COURSE_DECK) && !course.data;
+  // A course deck can't be built until the word list has loaded, and the next-stage deck until it is chosen.
+  // Due lesson cards don't need the list, so a failed load still lets them be reviewed.
+  const waitingForCourse = course.data
+    ? filterMode === NEXT_COURSE_DECK && !!nextStage
+    : !!courseStage || filterMode === NEXT_COURSE_DECK || (filterMode === 'due' && !course.error);
   if (waitingForCourse || cards.length === 0) {
     return (
       <div className="max-w-3xl mx-auto space-y-6">

@@ -200,8 +200,12 @@ export function App() {
   // Calculate Due Reviews
   const today = getTodayDateString();
   // Lesson words and 85% Course words share the review schedule
+  // (only ids a deck can show: progress left over from a removed lesson would be counted but never offered)
   const dueReviewCount = useMemo(() => {
-    return Object.values(progressMap).filter((p) => isDueForReview(p, today)).length;
+    const lessonIds = new Set(ALL_VERIFIED_WORDS.map((w) => w.id));
+    return Object.entries(progressMap).filter(
+      ([id, p]) => (lessonIds.has(id) || id.startsWith('course:')) && isDueForReview(p, today)
+    ).length;
   }, [progressMap, today]);
 
   // Filter words

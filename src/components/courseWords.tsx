@@ -33,7 +33,7 @@ export const buildStages = (words: CoverageWord[], totalWords: number): Stage[] 
       m += 1;
     }
   });
-  if (start < words.length) stages[stages.length - 1].words.push(...words.slice(start));
+  if (start < words.length && stages.length) stages[stages.length - 1].words.push(...words.slice(start));
   return stages;
 };
 

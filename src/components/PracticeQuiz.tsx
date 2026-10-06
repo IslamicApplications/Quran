@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { GraduationCap, CheckCircle2, XCircle, RotateCcw, ArrowRight, Award, Volume2, Shuffle } from 'lucide-react';
 import { QuranWord, DifficultyLevel, Language } from '../types';
 import { getCoverageList, fetchWordAt, formatRoot, playAudio, tagGroup, CoverageWord, QVerse } from '../services/quranCom';
@@ -10,6 +10,8 @@ import { useAsync, LoadingBlock, ErrorBlock, WordAudioButton, RecitedVerseText }
 const QUIZ_LENGTH = 10;
 /** Extra course words loaded alongside a quiz's own, to draw wrong answers from. */
 const DISTRACTOR_POOL = 30;
+/** Thrown when a selection has too few words to build questions with wrong answers. */
+const TOO_FEW_WORDS = 'Not enough words loaded';
 const LESSONS_SOURCE = 'lessons';
 const KNOWN_SOURCE = 'known';
 
@@ -17,7 +19,6 @@ type QuizKind = 'lesson' | 'meaning' | 'arabic' | 'listen';
 
 /** One multiple-choice question, from a detailed lesson or generated from an 85% Course word. */
 interface QuizItem {
-  key: string;
   /** Progress id the answer is recorded under. */
   cardId: string;
   kind: QuizKind;
@@ -46,29 +47,37 @@ const shuffle = <T,>(items: readonly T[]): T[] => {
   return out;
 };
 
+/** The question with its options in a new order, keeping the answer and misconception notes with their options. */
+const shuffleOptions = (item: QuizItem): QuizItem => {
+  const order = shuffle(item.options.map((_, i) => i));
+  return {
+    ...item,
+    options: order.map((i) => item.options[i]),
+    correctIndex: order.indexOf(item.correctIndex),
+    misconceptions: item.misconceptions
+      ? Object.fromEntries(Object.entries(item.misconceptions).map(([i, note]) => [order.indexOf(Number(i)), note]))
+      : undefined
+  };
+};
+
 /** The lessons' own questions, with their options shuffled (most had the answer first). */
 const lessonQuiz = (words: QuranWord[]): QuizItem[] =>
   shuffle(
     words.flatMap((w) =>
-      w.practiceQuestions.map((q) => {
-        const order = shuffle(q.options.map((_, i) => i));
-        const misconceptions = q.misconceptions
-          ? Object.fromEntries(Object.entries(q.misconceptions).map(([i, note]) => [order.indexOf(Number(i)), note]))
-          : undefined;
-        return {
-          key: q.id,
+      w.practiceQuestions.map((q) =>
+        shuffleOptions({
           cardId: w.id,
-          kind: 'lesson' as const,
+          kind: 'lesson',
           prompt: q.question,
           arabic: w.arabic,
           transliteration: w.transliteration,
-          options: order.map((i) => q.options[i]),
-          correctIndex: order.indexOf(q.correctIndex),
+          options: q.options,
+          correctIndex: q.correctIndex,
           explanation: q.explanation,
-          misconceptions,
+          misconceptions: q.misconceptions,
           reference: `Surah ${w.primaryVerse.surahNameTransliteration} ${w.primaryVerse.surahNumber}:${w.primaryVerse.ayahNumber}`
-        };
-      })
+        })
+      )
     )
   );
 
@@ -90,7 +99,7 @@ const courseQuiz = async (words: CoverageWord[]): Promise<QuizItem[]> => {
     if (!view.arabic || !view.meaning) return [];
     return [{ word, sample: result.value, arabic: view.arabic, meaning: view.meaning, differs: view.differs }];
   });
-  if (loaded.length < 4) throw new Error('Not enough words loaded');
+  if (loaded.length < 4) throw new Error(TOO_FEW_WORDS);
 
   const kinds: QuizKind[] = ['meaning', 'arabic', 'listen'];
   return loaded.slice(0, Math.min(QUIZ_LENGTH, loaded.length - 3)).map((q, i) => {
@@ -101,8 +110,8 @@ const courseQuiz = async (words: CoverageWord[]): Promise<QuizItem[]> => {
     );
     const group = tagGroup(q.word.tag);
     const distractors = [...others.filter((o) => tagGroup(o.word.tag) === group), ...others.filter((o) => tagGroup(o.word.tag) !== group)]
-      // two wrong answers that share a meaning would make each other obviously wrong
-      .filter((o, j, all) => all.findIndex((x) => sameText(x.meaning, o.meaning)) === j)
+      // two wrong answers that share a meaning or a spelling would make each other obviously wrong
+      .filter((o, j, all) => all.findIndex((x) => sameText(x.meaning, o.meaning) || x.arabic === o.arabic) === j)
       .slice(0, 3);
     const choices = shuffle([q, ...distractors]);
     let kind = kinds[i % kinds.length];
@@ -110,7 +119,6 @@ const courseQuiz = async (words: CoverageWord[]): Promise<QuizItem[]> => {
     const [s, a, w] = q.word.sample.split(':').map(Number);
 
     return {
-      key: `${q.word.lemma}:${kind}`,
       cardId: courseCardId(q.word.lemma),
       kind,
       prompt:
@@ -142,8 +150,8 @@ interface PracticeQuizProps {
 export const PracticeQuiz: React.FC<PracticeQuizProps> = ({ words, onRateWord }) => {
   const course = useAsync(getCoverageList, []);
   const known = useKnownLemmas();
-  const stages = course.data ? buildStages(course.data.words, course.data.totalWords) : [];
-  const knownWords = course.data?.words.filter((w) => known.has(w.lemma)) ?? [];
+  const stages = useMemo(() => (course.data ? buildStages(course.data.words, course.data.totalWords) : []), [course.data]);
+  const knownWords = useMemo(() => course.data?.words.filter((w) => known.has(w.lemma)) ?? [], [course.data, known]);
   const [source, setSource] = useState<string | null>(null);
   const [round, setRound] = useState(0);
 
@@ -219,7 +227,14 @@ export const PracticeQuiz: React.FC<PracticeQuizProps> = ({ words, onRateWord })
       {header}
       {quiz.error ? (
         <div className="card">
-          <ErrorBlock message="Could not load the quiz words from Quran.com. Check your connection and try again." onRetry={quiz.retry} />
+          <ErrorBlock
+            message={
+              quiz.error instanceof Error && quiz.error.message === TOO_FEW_WORDS
+                ? 'Not enough words in this selection to make a quiz. Choose another, or mark more words as known.'
+                : 'Could not load the quiz words from Quran.com. Check your connection and try again.'
+            }
+            onRetry={quiz.retry}
+          />
         </div>
       ) : !current ? (
         <div className="card">
@@ -285,18 +300,7 @@ const QuizRun: React.FC<{
 
   const handleRestart = (onlyIncorrect = false) => {
     // Shuffle the options again, so a retry tests the word rather than where its answer was
-    const reshuffled = (onlyIncorrect ? incorrectList : items).map((item) => {
-      const order = shuffle(item.options.map((_, i) => i));
-      return {
-        ...item,
-        options: order.map((i) => item.options[i]),
-        correctIndex: order.indexOf(item.correctIndex),
-        misconceptions: item.misconceptions
-          ? Object.fromEntries(Object.entries(item.misconceptions).map(([i, note]) => [order.indexOf(Number(i)), note]))
-          : undefined
-      };
-    });
-    setQuestionList(reshuffled);
+    setQuestionList((onlyIncorrect ? incorrectList : items).map(shuffleOptions));
     setCurrentIndex(0);
     setSelectedOption(null);
     setIsSubmitted(false);

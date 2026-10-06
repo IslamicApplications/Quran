@@ -42,7 +42,11 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
   const learningCount = progressList.filter((p) => p.status === 'learning').length;
   const newCount = totalWords - wordsStudiedCount;
 
-  const dueCount = progressList.filter((p) => isDueForReview(p, today)).length;
+  // Only ids a deck can show, as in the sidebar's count: progress left over from a removed lesson is never offered
+  const lessonIds = new Set(allWords.map((w) => w.id));
+  const dueCount = Object.entries(progressMap).filter(
+    ([id, p]) => (lessonIds.has(id) || id.startsWith('course:')) && isDueForReview(p, today)
+  ).length;
 
   // Calculate total reviews performed
   let totalReviewsDone = 0;

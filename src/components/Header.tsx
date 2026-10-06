@@ -12,11 +12,9 @@ export type ActiveTab =
   | 'wordbyword'
   | 'treebank'
   | 'concordance'
-  | 'ontology'
   | 'flashcards'
   | 'quiz'
   | 'comparisons'
-  | 'analyzer'
   | 'study-lists'
   | 'progress';
 

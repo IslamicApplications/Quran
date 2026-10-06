@@ -76,23 +76,6 @@ export interface RootConcordanceEntry {
   }[];
 }
 
-export interface QuranConcept {
-  id: string;
-  titleEnglish: string;
-  titleArabic: string;
-  category: 'divine_attributes' | 'prophets_figures' | 'virtues_ethics' | 'creation_cosmos' | 'hereafter';
-  description: string;
-  associatedRoots: string[];
-  associatedWords: string[];
-  keyVerses: {
-    surah: number;
-    ayah: number;
-    surahName: string;
-    arabic: string;
-    translation: string;
-  }[];
-}
-
 // Full Word-by-Word and Treebank data for high-frequency Quranic verses
 export const VERSE_TREEBANKS: VerseTreebank[] = [
   {
@@ -679,85 +662,6 @@ export const ROOT_CONCORDANCE: RootConcordanceEntry[] = [
           verseText: 'يَـٰٓأَيُّهَا ٱلَّذِينَ ءَامَنُوا۟ كُتِبَ عَلَيْكُمُ ٱلصِّيَامُ',
           translation: 'O you who have believed, decreed upon you is fasting.'
         }
-      }
-    ]
-  }
-];
-
-// Semantic Ontology of Quranic Concepts
-export const QURANIC_ONTOLOGY: QuranConcept[] = [
-  {
-    id: 'concept-divine-lordship',
-    titleEnglish: 'Rubūbiyyah (Divine Lordship & Providence)',
-    titleArabic: 'الرُّبُوبِيَّة وَالتَّدْبِير',
-    category: 'divine_attributes',
-    description: 'The theological doctrine that Allah is the exclusive Creator, Nurturer, Master, Sustainer, and Ruler of all cosmic domains.',
-    associatedRoots: ['ر ب ب', 'خ ل ق', 'م ل ك'],
-    associatedWords: ['rabb', 'nur', 'haqq'],
-    keyVerses: [
-      {
-        surah: 1,
-        ayah: 2,
-        surahName: 'Al-Fatihah',
-        arabic: 'ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَـٰلَمِينَ',
-        translation: 'All praise is to Allah, Lord of the worlds.'
-      },
-      {
-        surah: 114,
-        ayah: 1,
-        surahName: 'An-Nas',
-        arabic: 'قُلْ أَعُوذُ بِرَبِّ ٱلنَّاسِ',
-        translation: 'Say, "I seek refuge in the Lord of mankind."'
-      }
-    ]
-  },
-  {
-    id: 'concept-spiritual-purity',
-    titleEnglish: 'Heart Vigilance & Taqwa',
-    titleArabic: 'التَّقْوَى وَسَلَامَةُ القَلْب',
-    category: 'virtues_ethics',
-    description: 'The internal state of mindfulness, reverence, and spiritual integrity that shields the human soul from error and hypocrisy.',
-    associatedRoots: ['و ق ي', 'ق ل ب', 'ص ب ر', 'ش ك ر'],
-    associatedWords: ['taqwa', 'qalb', 'sabr', 'shukr'],
-    keyVerses: [
-      {
-        surah: 2,
-        ayah: 197,
-        surahName: 'Al-Baqarah',
-        arabic: 'وَتَزَوَّدُوا۟ فَإِنَّ خَيْرَ ٱلزَّادِ ٱلتَّقْوَىٰ',
-        translation: 'And take provisions, but indeed, the best provision is Taqwa.'
-      },
-      {
-        surah: 26,
-        ayah: 89,
-        surahName: 'Ash-Shu\'ara',
-        arabic: 'إِلَّا مَنْ أَتَى ٱللَّهَ بِقَلْبٍۢ سَلِيمٍۢ',
-        translation: 'Except one who comes to Allah with a sound heart.'
-      }
-    ]
-  },
-  {
-    id: 'concept-revelation-light',
-    titleEnglish: 'Revelation, Guidance & Illumination',
-    titleArabic: 'الوَحْيُ وَالهِدَايَةُ وَالنُّور',
-    category: 'creation_cosmos',
-    description: 'The descent of divine guidance (Huda), sacred scripture (Kitab), and luminous wisdom (Hikmah) dispelling ignorance.',
-    associatedRoots: ['ه د ي', 'ك ت ب', 'ن و ر', 'ح ك م'],
-    associatedWords: ['huda', 'kitab', 'nur', 'hikmah'],
-    keyVerses: [
-      {
-        surah: 2,
-        ayah: 2,
-        surahName: 'Al-Baqarah',
-        arabic: 'ذَٰلِكَ ٱلْكِتَـٰبُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًۭى لِّلْمُتَّقِينَ',
-        translation: 'This is the Book about which there is no doubt, a guidance for those conscious of Allah.'
-      },
-      {
-        surah: 24,
-        ayah: 35,
-        surahName: 'An-Nur',
-        arabic: 'ٱللَّهُ نُورُ ٱلسَّمَـٰوَٰتِ وَٱلْأَرْضِ',
-        translation: 'Allah is the Light of the heavens and the earth.'
       }
     ]
   }

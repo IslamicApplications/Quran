@@ -5,11 +5,9 @@ import {
   GraduationCap,
   Bookmark,
   BarChart3,
-  SearchCode,
   Compass,
   Network,
   BookMarked,
-  GitBranch,
   Flame,
   X,
   Clock,
@@ -60,9 +58,7 @@ const buildNavGroups = (dueReviewCount: number, savedCount: number): { title: st
     items: [
       { id: 'wordbyword', label: 'Word by Word', icon: Type },
       { id: 'treebank', label: 'Treebank (إعراب)', icon: Network },
-      { id: 'concordance', label: 'Root Dictionary', icon: BookMarked },
-      { id: 'ontology', label: 'Concept Ontology', icon: GitBranch },
-      { id: 'analyzer', label: 'Word Analyzer', icon: SearchCode }
+      { id: 'concordance', label: 'Root Dictionary', icon: BookMarked }
     ]
   },
   {

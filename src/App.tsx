@@ -24,13 +24,11 @@ const named = <T extends Record<string, unknown>, K extends keyof T>(loader: () 
 const FlashcardViewer = named(() => import('./components/FlashcardViewer'), 'FlashcardViewer');
 const PracticeQuiz = named(() => import('./components/PracticeQuiz'), 'PracticeQuiz');
 const WordComparisonModal = named(() => import('./components/WordComparisonModal'), 'WordComparisonModal');
-const CustomWordAnalyzer = named(() => import('./components/CustomWordAnalyzer'), 'CustomWordAnalyzer');
 const SavedListsManager = named(() => import('./components/SavedListsManager'), 'SavedListsManager');
 const ProgressDashboard = named(() => import('./components/ProgressDashboard'), 'ProgressDashboard');
 const WordByWordVerseViewer = named(() => import('./components/WordByWordVerseViewer'), 'WordByWordVerseViewer');
 const SyntacticTreebank = named(() => import('./components/SyntacticTreebank'), 'SyntacticTreebank');
 const RootConcordanceViewer = named(() => import('./components/RootConcordanceViewer'), 'RootConcordanceViewer');
-const QuranOntologyViewer = named(() => import('./components/QuranOntologyViewer'), 'QuranOntologyViewer');
 const SurahReader = named(() => import('./components/SurahReader'), 'SurahReader');
 const CoverageCourse = named(() => import('./components/CoverageCourse'), 'CoverageCourse');
 const Top100VocabularyExplorer = named(
@@ -46,11 +44,9 @@ const VALID_TABS: ActiveTab[] = [
   'wordbyword',
   'treebank',
   'concordance',
-  'ontology',
   'flashcards',
   'quiz',
   'comparisons',
-  'analyzer',
   'study-lists',
   'progress'
 ];
@@ -344,7 +340,7 @@ export function App() {
                             ) : null}
                             {searchQuery
                               ? 'See matches from the whole Quran below, or try root letters or a transliteration.'
-                              : 'Try root letters, a transliteration, an English meaning, or the Word Analyzer.'}
+                              : 'Try root letters, a transliteration or an English meaning.'}
                           </p>
                           <div className="flex items-center justify-center gap-2">
                             <button
@@ -352,12 +348,6 @@ export function App() {
                               className="px-4 py-2 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-xl text-sm font-semibold cursor-pointer"
                             >
                               Clear filters
-                            </button>
-                            <button
-                              onClick={() => setActiveTab('analyzer')}
-                              className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-sm font-semibold cursor-pointer"
-                            >
-                              Open Word Analyzer
                             </button>
                           </div>
                         </div>
@@ -421,8 +411,6 @@ export function App() {
                     <RootConcordanceViewer initialRoot={rootDictRoot} onOpenVerse={openVerse} />
                   )}
 
-                  {activeTab === 'ontology' && <QuranOntologyViewer />}
-
                   {activeTab === 'flashcards' && (
                     <FlashcardViewer
                       words={ALL_VERIFIED_WORDS}
@@ -446,14 +434,6 @@ export function App() {
                   )}
 
                   {activeTab === 'comparisons' && <WordComparisonModal />}
-
-                  {activeTab === 'analyzer' && (
-                    <CustomWordAnalyzer
-                      level={settings.level}
-                      language={settings.language}
-                      onSelectVerifiedWord={handleSelectWordInDictionary}
-                    />
-                  )}
 
                   {activeTab === 'study-lists' && (
                     <SavedListsManager

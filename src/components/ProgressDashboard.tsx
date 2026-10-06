@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { UserProgress, QuranWord } from '../types';
 import { getTodayDateString, isDueForReview } from '../services/storage';
+import { getCoverageList } from '../services/quranCom';
+import { useAsync } from './QuranWordBits';
 
 interface ProgressDashboardProps {
   progressMap: Record<string, UserProgress>;
@@ -29,19 +31,18 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
 }) => {
   const today = getTodayDateString();
 
-  // Calculate statistics
-  const totalWords = allWords.length;
+  // Lesson words and 85% Course words share the review schedule, so count both
+  const courseWordCount = useAsync(getCoverageList, []).data?.words.length ?? 0;
   const progressList = Object.values(progressMap);
   const wordsStudiedCount = progressList.length;
+  const totalWords = Math.max(allWords.length + courseWordCount, wordsStudiedCount, 1);
 
   const masteredCount = progressList.filter((p) => p.status === 'mastered').length;
   const reviewingCount = progressList.filter((p) => p.status === 'reviewing').length;
   const learningCount = progressList.filter((p) => p.status === 'learning').length;
   const newCount = totalWords - wordsStudiedCount;
 
-  const dueForReviewList = allWords.filter((w) => isDueForReview(progressMap[w.id], today));
-
-  const dueCount = dueForReviewList.length;
+  const dueCount = progressList.filter((p) => isDueForReview(p, today)).length;
 
   // Calculate total reviews performed
   let totalReviewsDone = 0;

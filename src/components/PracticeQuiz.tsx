@@ -55,7 +55,7 @@ export const PracticeQuiz: React.FC<PracticeQuizProps> = ({
     const isCorrect = selectedOption === currentItem.question.correctIndex;
     if (isCorrect) {
       setCorrectCount((prev) => prev + 1);
-      onRateWord(currentItem.word.id, 5, true);
+      onRateWord(currentItem.word.id, 4, true); // picking from options is easier than recall: Good, not Easy
     } else {
       setIncorrectList((prev) => [...prev, currentItem]);
       onRateWord(currentItem.word.id, 2, false);

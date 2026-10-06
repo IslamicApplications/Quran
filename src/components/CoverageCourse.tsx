@@ -1,96 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Target, Check, Play, X, Eye, RotateCcw, Trophy, EyeOff } from 'lucide-react';
-import {
-  getCoverageList,
-  fetchWordAt,
-  formatRoot,
-  romanVerbForm,
-  tagGroup,
-  CoverageWord
-} from '../services/quranCom';
+import { getCoverageList, fetchWordAt, formatRoot, CoverageWord } from '../services/quranCom';
 import { SURAH_LIST } from '../data/surahList';
-import { sameSpokenForm } from '../services/arabicForm';
-import { functionWordMeaning, vocabularyGloss } from '../data/functionWordMeanings';
 import { useKnownLemmas, knownLemmasStore } from '../hooks/useKnownLemmas';
 import { useModalBehavior } from '../hooks/useModalBehavior';
 import { LoadingBlock, ErrorBlock, useAsync, WordAudioButton, TagBadge, RecitedVerseText } from './QuranWordBits';
 import { VerseAudioBar } from './VerseAudioBar';
+import { MILESTONES, buildStages, spokenView, DictionaryForm, wordTypeLabel } from './courseWords';
 
 interface CoverageCourseProps {
   onOpenVerse?: (verseKey: string) => void;
 }
 
 const UNIT_SIZE = 20;
-const MILESTONES = [
-  { percent: 50, title: 'Foundations', blurb: 'The particles, pronouns and names that appear in almost every verse.' },
-  { percent: 70, title: 'Core vocabulary', blurb: 'The most common verbs and nouns of the Quran’s message.' },
-  { percent: 80, title: 'Building fluency', blurb: 'Words that recur across many surahs and stories.' },
-  { percent: 85, title: 'Wide reading', blurb: 'Rounding out vocabulary for comfortable reading.' }
-];
-
-interface Stage {
-  index: number;
-  percent: number;
-  title: string;
-  blurb: string;
-  words: CoverageWord[];
-}
-
-const buildStages = (words: CoverageWord[], totalWords: number): Stage[] => {
-  const stages: Stage[] = [];
-  let cumulative = 0;
-  let start = 0;
-  let m = 0;
-  words.forEach((w, i) => {
-    cumulative += w.count;
-    if (m < MILESTONES.length && (cumulative / totalWords) * 100 >= MILESTONES[m].percent) {
-      stages.push({ index: m, ...MILESTONES[m], words: words.slice(start, i + 1) });
-      start = i + 1;
-      m += 1;
-    }
-  });
-  if (start < words.length) stages[stages.length - 1].words.push(...words.slice(start));
-  return stages;
-};
 
 const chunk = <T,>(items: T[], size: number): T[][] =>
   Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, i * size + size));
-
-// Verbs are listed by dictionary form, so tense from the sample occurrence would mislead; show "Verb · Form N".
-/** Function words get their dictionary meaning; a verse gloss would describe only that verse (ب in بِى: "in Me"). */
-const meaningOf = (word: CoverageWord, verseGloss?: string) =>
-  functionWordMeaning(word.lemma) ?? (verseGloss ? vocabularyGloss(verseGloss) : undefined);
-
-/**
- * What a card shows, built from the sample occurrence so the word on screen is the word in the recording.
- * Some dictionary forms never occur alone (ب is always attached, as in بِى) or only in other forms
- * (مَشَى as يَمْشِى); then the card shows the recited form with its meaning and names the dictionary form.
- */
-const spokenView = (word: CoverageWord, sample: { arabic: string; translation: string } | undefined, failed: boolean) => {
-  // Quranic pause and prostration signs belong to the verse, not the word
-  const heard = sample?.arabic.replace(/[\u06D6-\u06DC\u06DE\u06E9]/g, '').trim();
-  const differs = !!heard && !sameSpokenForm(heard, word.lemma);
-  return {
-    arabic: heard || (failed ? word.lemma : undefined),
-    differs,
-    meaning: differs ? vocabularyGloss(sample!.translation) : meaningOf(word, sample?.translation) ?? (failed ? '' : undefined),
-    dictionaryMeaning: differs ? functionWordMeaning(word.lemma) : undefined
-  };
-};
-
-/** "from ب", naming the dictionary form a recited form belongs to. */
-const DictionaryForm: React.FC<{ lemma: string; className?: string }> = ({ lemma, className = '' }) => (
-  <div className={`text-[11px] text-stone-500 dark:text-stone-400 ${className}`} title="Dictionary form: marking it known covers every form of the word">
-    from{' '}
-    <span className="font-quran-amiri text-base font-bold text-stone-700 dark:text-stone-300" dir="rtl">
-      {lemma}
-    </span>
-  </div>
-);
-
-const wordTypeLabel = (w: CoverageWord) =>
-  tagGroup(w.tag) === 'verb' ? `Verb${w.verbForm ? ` · Form ${romanVerbForm(w.verbForm)}` : ''}` : '';
 
 export const CoverageCourse: React.FC<CoverageCourseProps> = ({ onOpenVerse }) => {
   const { data, loading, error, retry } = useAsync(getCoverageList, []);

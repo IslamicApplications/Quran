@@ -12,6 +12,8 @@ import { VocabularyGrid, LessonDrawer } from './components/VocabularyGrid';
 import { SettingsModal } from './components/SettingsModal';
 import { Footer } from './components/Footer';
 import { WholeQuranSearch } from './components/WholeQuranSearch';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { NEXT_COURSE_DECK } from './components/courseWords';
 import { knownLemmasStore } from './hooks/useKnownLemmas';
 import { BookOpen, Loader2 } from 'lucide-react';
 
@@ -85,7 +87,7 @@ export function App() {
   const [settings, setSettings] = useState<AppSettings>(StorageService.getSettings());
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const [flashcardDeck, setFlashcardDeck] = useState<string>('all');
+  const [flashcardDeck, setFlashcardDeck] = useState<string>(NEXT_COURSE_DECK);
   const [wbwVerseKey, setWbwVerseKey] = useState<string>('1:2');
   const [rootDictRoot, setRootDictRoot] = useState<string | undefined>(undefined);
   const [readerSurah, setReaderSurah] = useState<number | undefined>(surahFromHash);
@@ -201,8 +203,9 @@ export function App() {
 
   // Calculate Due Reviews
   const today = getTodayDateString();
+  // Lesson words and 85% Course words share the review schedule
   const dueReviewCount = useMemo(() => {
-    return ALL_VERIFIED_WORDS.filter((w) => isDueForReview(progressMap[w.id], today)).length;
+    return Object.values(progressMap).filter((p) => isDueForReview(p, today)).length;
   }, [progressMap, today]);
 
   // Filter words
@@ -295,185 +298,188 @@ export function App() {
             <DisclaimerBanner />
 
             <div key={activeTab} className="animate-fadeIn">
-              <Suspense fallback={<TabFallback />}>
-                {/* Dictionary & Vocabulary Lessons */}
-                {activeTab === 'dictionary' && (
-                  <div className="space-y-6">
-                    {!hasActiveFilters && (
-                      <Hero
-                        totalWords={ALL_VERIFIED_WORDS.length}
-                        dueReviewCount={dueReviewCount}
-                        savedCount={savedWordIds.length}
-                        streak={streak}
-                        onStartReview={() => openFlashcards(dueReviewCount > 0 ? 'due' : 'all')}
-                        onOpenCourse={() => setActiveTab('course')}
-                      />
-                    )}
-
-                    <SearchBar
-                      searchQuery={searchQuery}
-                      onSearchChange={setSearchQuery}
-                      selectedCategory={selectedCategory}
-                      onCategoryChange={setSelectedCategory}
-                      selectedSurah={selectedSurah}
-                      onSurahChange={setSelectedSurah}
-                      onlyDue={onlyDue}
-                      onToggleDue={() => setOnlyDue(!onlyDue)}
-                      onlySaved={onlySaved}
-                      onToggleSaved={() => setOnlySaved(!onlySaved)}
-                      resultsCount={filteredWords.length}
-                      totalCount={ALL_VERIFIED_WORDS.length}
-                    />
-
-                    {filteredWords.length === 0 ? (
-                      <div className="card p-10 text-center space-y-4 max-w-md mx-auto">
-                        <div className="w-14 h-14 bg-amber-50 dark:bg-amber-950/20 ring-1 ring-amber-200 dark:ring-amber-900/60 text-amber-700 dark:text-amber-300 rounded-2xl flex items-center justify-center mx-auto">
-                          <BookOpen className="w-6 h-6" />
-                        </div>
-                        <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">No detailed lesson yet</h3>
-                        <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
-                          {searchQuery ? (
-                            <>
-                              Nothing matched “<strong className="text-stone-700 dark:text-stone-300">{searchQuery}</strong>”.{' '}
-                            </>
-                          ) : null}
-                          {searchQuery
-                            ? 'See matches from the whole Quran below, or try root letters or a transliteration.'
-                            : 'Try root letters, a transliteration, an English meaning, or the Word Analyzer.'}
-                        </p>
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={resetFilters}
-                            className="px-4 py-2 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-xl text-sm font-semibold cursor-pointer"
-                          >
-                            Clear filters
-                          </button>
-                          <button
-                            onClick={() => setActiveTab('analyzer')}
-                            className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-sm font-semibold cursor-pointer"
-                          >
-                            Open Word Analyzer
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {filteredWords.length < ALL_VERIFIED_WORDS.length && (
-                          <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-stone-400 px-1">
-                            Detailed lessons
-                          </div>
-                        )}
-                        <VocabularyGrid
-                          words={filteredWords}
-                          level={settings.level}
-                          language={settings.language}
-                          savedWordIds={savedWordIds}
-                          progressMap={progressMap}
-                          onOpen={setOpenLessonId}
-                          onToggleSave={handleToggleSave}
+              {/* Keyed by tab with its parent, so switching tabs clears an error */}
+              <ErrorBoundary>
+                <Suspense fallback={<TabFallback />}>
+                  {/* Dictionary & Vocabulary Lessons */}
+                  {activeTab === 'dictionary' && (
+                    <div className="space-y-6">
+                      {!hasActiveFilters && (
+                        <Hero
+                          totalWords={ALL_VERIFIED_WORDS.length}
+                          dueReviewCount={dueReviewCount}
+                          savedCount={savedWordIds.length}
+                          streak={streak}
+                          onStartReview={() => openFlashcards(dueReviewCount > 0 ? 'due' : NEXT_COURSE_DECK)}
+                          onOpenCourse={() => setActiveTab('course')}
                         />
-                      </div>
-                    )}
+                      )}
 
-                    <WholeQuranSearch query={searchQuery} onOpenVerse={openVerse} onOpenRoot={openRoot} />
-                  </div>
-                )}
+                      <SearchBar
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        selectedCategory={selectedCategory}
+                        onCategoryChange={setSelectedCategory}
+                        selectedSurah={selectedSurah}
+                        onSurahChange={setSelectedSurah}
+                        onlyDue={onlyDue}
+                        onToggleDue={() => setOnlyDue(!onlyDue)}
+                        onlySaved={onlySaved}
+                        onToggleSaved={() => setOnlySaved(!onlySaved)}
+                        resultsCount={filteredWords.length}
+                        totalCount={ALL_VERIFIED_WORDS.length}
+                      />
 
-                {activeTab === 'reader' && (
-                  <SurahReader
-                    surah={readerSurah}
-                    onSelectSurah={openSurah}
-                    juz={readerJuz}
-                    onSelectJuz={openJuz}
-                    settings={settings}
-                    onOpenVerse={openVerse}
-                    onOpenRoot={openRoot}
-                  />
-                )}
+                      {filteredWords.length === 0 ? (
+                        <div className="card p-10 text-center space-y-4 max-w-md mx-auto">
+                          <div className="w-14 h-14 bg-amber-50 dark:bg-amber-950/20 ring-1 ring-amber-200 dark:ring-amber-900/60 text-amber-700 dark:text-amber-300 rounded-2xl flex items-center justify-center mx-auto">
+                            <BookOpen className="w-6 h-6" />
+                          </div>
+                          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">No detailed lesson yet</h3>
+                          <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
+                            {searchQuery ? (
+                              <>
+                                Nothing matched “<strong className="text-stone-700 dark:text-stone-300">{searchQuery}</strong>”.{' '}
+                              </>
+                            ) : null}
+                            {searchQuery
+                              ? 'See matches from the whole Quran below, or try root letters or a transliteration.'
+                              : 'Try root letters, a transliteration, an English meaning, or the Word Analyzer.'}
+                          </p>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={resetFilters}
+                              className="px-4 py-2 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-xl text-sm font-semibold cursor-pointer"
+                            >
+                              Clear filters
+                            </button>
+                            <button
+                              onClick={() => setActiveTab('analyzer')}
+                              className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-sm font-semibold cursor-pointer"
+                            >
+                              Open Word Analyzer
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          {filteredWords.length < ALL_VERIFIED_WORDS.length && (
+                            <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-stone-400 px-1">
+                              Detailed lessons
+                            </div>
+                          )}
+                          <VocabularyGrid
+                            words={filteredWords}
+                            level={settings.level}
+                            language={settings.language}
+                            savedWordIds={savedWordIds}
+                            progressMap={progressMap}
+                            onOpen={setOpenLessonId}
+                            onToggleSave={handleToggleSave}
+                          />
+                        </div>
+                      )}
 
-                {activeTab === 'course' && <CoverageCourse onOpenVerse={openVerse} />}
+                      <WholeQuranSearch query={searchQuery} onOpenVerse={openVerse} onOpenRoot={openRoot} />
+                    </div>
+                  )}
 
-                {activeTab === 'top100' && (
-                  <Top100VocabularyExplorer
-                    onSelectWord={handleSelectWordInDictionary}
-                    onOpenRoot={openRoot}
-                    onOpenVerse={openVerse}
-                  />
-                )}
+                  {activeTab === 'reader' && (
+                    <SurahReader
+                      surah={readerSurah}
+                      onSelectSurah={openSurah}
+                      juz={readerJuz}
+                      onSelectJuz={openJuz}
+                      settings={settings}
+                      onOpenVerse={openVerse}
+                      onOpenRoot={openRoot}
+                    />
+                  )}
 
-                {activeTab === 'wordbyword' && (
-                  <WordByWordVerseViewer
-                    verseKey={wbwVerseKey}
-                    onVerseChange={setWbwVerseKey}
-                    onOpenRoot={openRoot}
-                    onOpenSurah={openSurah}
-                  />
-                )}
+                  {activeTab === 'course' && <CoverageCourse onOpenVerse={openVerse} />}
 
-                {activeTab === 'treebank' && <SyntacticTreebank />}
+                  {activeTab === 'top100' && (
+                    <Top100VocabularyExplorer
+                      onSelectWord={handleSelectWordInDictionary}
+                      onOpenRoot={openRoot}
+                      onOpenVerse={openVerse}
+                    />
+                  )}
 
-                {activeTab === 'concordance' && (
-                  <RootConcordanceViewer initialRoot={rootDictRoot} onOpenVerse={openVerse} />
-                )}
+                  {activeTab === 'wordbyword' && (
+                    <WordByWordVerseViewer
+                      verseKey={wbwVerseKey}
+                      onVerseChange={setWbwVerseKey}
+                      onOpenRoot={openRoot}
+                      onOpenSurah={openSurah}
+                    />
+                  )}
 
-                {activeTab === 'ontology' && <QuranOntologyViewer />}
+                  {activeTab === 'treebank' && <SyntacticTreebank />}
 
-                {activeTab === 'flashcards' && (
-                  <FlashcardViewer
-                    words={ALL_VERIFIED_WORDS}
-                    level={settings.level}
-                    language={settings.language}
-                    settings={settings}
-                    progressMap={progressMap}
-                    studyLists={studyLists}
-                    onRateWord={handleRateSRS}
-                    initialFilterMode={flashcardDeck}
-                  />
-                )}
+                  {activeTab === 'concordance' && (
+                    <RootConcordanceViewer initialRoot={rootDictRoot} onOpenVerse={openVerse} />
+                  )}
 
-                {activeTab === 'quiz' && (
-                  <PracticeQuiz
-                    words={ALL_VERIFIED_WORDS}
-                    level={settings.level}
-                    language={settings.language}
-                    onRateWord={handleRateSRS}
-                  />
-                )}
+                  {activeTab === 'ontology' && <QuranOntologyViewer />}
 
-                {activeTab === 'comparisons' && <WordComparisonModal />}
+                  {activeTab === 'flashcards' && (
+                    <FlashcardViewer
+                      words={ALL_VERIFIED_WORDS}
+                      level={settings.level}
+                      language={settings.language}
+                      settings={settings}
+                      progressMap={progressMap}
+                      studyLists={studyLists}
+                      onRateWord={handleRateSRS}
+                      initialFilterMode={flashcardDeck}
+                    />
+                  )}
 
-                {activeTab === 'analyzer' && (
-                  <CustomWordAnalyzer
-                    level={settings.level}
-                    language={settings.language}
-                    onSelectVerifiedWord={handleSelectWordInDictionary}
-                  />
-                )}
+                  {activeTab === 'quiz' && (
+                    <PracticeQuiz
+                      words={ALL_VERIFIED_WORDS}
+                      level={settings.level}
+                      language={settings.language}
+                      onRateWord={handleRateSRS}
+                    />
+                  )}
 
-                {activeTab === 'study-lists' && (
-                  <SavedListsManager
-                    studyLists={studyLists}
-                    savedWordIds={savedWordIds}
-                    allWords={ALL_VERIFIED_WORDS}
-                    level={settings.level}
-                    language={settings.language}
-                    onUpdateLists={reloadStorageData}
-                    onStartFlashcardsWithList={(listId: string) =>
-                      openFlashcards(listId === 'all-saved' ? 'all' : listId)
-                    }
-                    onSelectWord={handleSelectWordInDictionary}
-                  />
-                )}
+                  {activeTab === 'comparisons' && <WordComparisonModal />}
 
-                {activeTab === 'progress' && (
-                  <ProgressDashboard
-                    progressMap={progressMap}
-                    allWords={ALL_VERIFIED_WORDS}
-                    streak={streak}
-                    onStartDueReview={() => openFlashcards('due')}
-                  />
-                )}
-              </Suspense>
+                  {activeTab === 'analyzer' && (
+                    <CustomWordAnalyzer
+                      level={settings.level}
+                      language={settings.language}
+                      onSelectVerifiedWord={handleSelectWordInDictionary}
+                    />
+                  )}
+
+                  {activeTab === 'study-lists' && (
+                    <SavedListsManager
+                      studyLists={studyLists}
+                      savedWordIds={savedWordIds}
+                      allWords={ALL_VERIFIED_WORDS}
+                      level={settings.level}
+                      language={settings.language}
+                      onUpdateLists={reloadStorageData}
+                      onStartFlashcardsWithList={(listId: string) =>
+                        openFlashcards(listId === 'all-saved' ? 'all' : listId)
+                      }
+                      onSelectWord={handleSelectWordInDictionary}
+                    />
+                  )}
+
+                  {activeTab === 'progress' && (
+                    <ProgressDashboard
+                      progressMap={progressMap}
+                      allWords={ALL_VERIFIED_WORDS}
+                      streak={streak}
+                      onStartDueReview={() => openFlashcards('due')}
+                    />
+                  )}
+                </Suspense>
+              </ErrorBoundary>
             </div>
           </main>
 

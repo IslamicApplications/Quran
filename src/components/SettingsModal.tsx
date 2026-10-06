@@ -66,7 +66,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         setImportJsonText('');
       }, 2500);
     } else {
-      setImportStatus('Error: Invalid JSON format.');
+      setImportStatus("Error: This isn't a valid Ayah Words backup. Nothing was changed.");
     }
   };
 
@@ -260,7 +260,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             )}
             {importStatus && (
-              <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">{importStatus}</p>
+              <p
+                className={`text-xs font-semibold ${
+                  importStatus.startsWith('Error') ? 'text-rose-700 dark:text-rose-400' : 'text-emerald-800 dark:text-emerald-300'
+                }`}
+              >
+                {importStatus}
+              </p>
             )}
           </div>
 

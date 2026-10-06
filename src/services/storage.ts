@@ -66,6 +66,12 @@ export const getTodayDateString = (): string => toLocalDateString(new Date());
 export const isDueForReview = (progress: UserProgress | undefined, today = getTodayDateString()): boolean =>
   !!progress && progress.nextReviewDue <= today;
 
+/** Days until the second review, by how well a word was recalled the first time (3 Okay, 4 Good, 5 Easy). */
+const FIRST_INTERVAL_DAYS: Record<number, number> = { 3: 1, 4: 2, 5: 4 };
+const EASY_BONUS = 1.3;
+/** Even a well-known word comes back within a year. */
+const MAX_INTERVAL_DAYS = 365;
+
 // Calculate next review due using SM-2 algorithm
 export const calculateNextSRSReview = (
   currentProgress: UserProgress | undefined,
@@ -102,13 +108,11 @@ export const calculateNextSRSReview = (
   } else {
     newRepetition += 1;
     if (newRepetition === 1) {
-      newInterval = 1;
-    } else if (newRepetition === 2) {
-      newInterval = 3;
-    } else if (newRepetition === 3) {
-      newInterval = 6;
+      newInterval = FIRST_INTERVAL_DAYS[confidence] ?? 1;
     } else {
-      newInterval = Math.round(newInterval * newEaseFactor);
+      // Okay grows slowly, Good by the ease factor, Easy with a bonus; always at least a day longer than before
+      const growth = confidence === 3 ? 1.2 : confidence === 5 ? newEaseFactor * EASY_BONUS : newEaseFactor;
+      newInterval = Math.min(MAX_INTERVAL_DAYS, Math.max(newInterval + 1, Math.round(newInterval * growth)));
     }
   }
 
@@ -142,6 +146,34 @@ export const calculateNextSRSReview = (
       }
     ]
   };
+};
+
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  !!v && typeof v === 'object' && !Array.isArray(v);
+
+const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
+
+/**
+ * Checks a backup's shape before anything is written, so a damaged or foreign file can't leave data behind
+ * that crashes the app on every load. Every field is optional, but at least one must be present.
+ */
+const isBackup = (v: unknown): v is Record<string, unknown> => {
+  if (!isPlainObject(v)) return false;
+  const checks: Record<string, (x: unknown) => boolean> = {
+    settings: isPlainObject,
+    progress: (x) =>
+      isPlainObject(x) &&
+      Object.values(x).every((p) => isPlainObject(p) && typeof p.nextReviewDue === 'string' && Array.isArray(p.history)),
+    savedWordIds: isStringArray,
+    studyLists: (x) =>
+      Array.isArray(x) &&
+      x.every((l) => isPlainObject(l) && typeof l.id === 'string' && typeof l.title === 'string' && isStringArray(l.wordIds)),
+    streak: (x) => typeof x === 'number',
+    lastActiveDate: (x) => typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x),
+    knownLemmas: isStringArray
+  };
+  const present = Object.keys(checks).filter((k) => v[k] !== undefined && v[k] !== null);
+  return present.length > 0 && present.every((k) => checks[k](v[k]));
 };
 
 export const StorageService = {
@@ -364,7 +396,7 @@ export const StorageService = {
   importUserDataJson: (jsonString: string): boolean => {
     try {
       const parsed = JSON.parse(jsonString);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+      if (!isBackup(parsed)) return false;
       if (parsed.settings) localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(parsed.settings));
       if (parsed.progress) localStorage.setItem(STORAGE_KEYS.PROGRESS, JSON.stringify(parsed.progress));
       if (parsed.savedWordIds) localStorage.setItem(STORAGE_KEYS.SAVED_WORD_IDS, JSON.stringify(parsed.savedWordIds));

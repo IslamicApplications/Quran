@@ -25,7 +25,7 @@ const loadPlanData = async () => {
  * learner is closest to understanding in full (short surahs count, since any word left is a word to learn).
  */
 export const TodayPlan: React.FC<TodayPlanProps> = ({ dueReviewCount, onReview, onLearnCourseWords, onStudySurah, onReadSurah }) => {
-  const { data } = useAsync(loadPlanData, []);
+  const { data, error } = useAsync(loadPlanData, []);
   const known = useKnownLemmas();
 
   const plan = useMemo(() => {
@@ -66,6 +66,8 @@ export const TodayPlan: React.FC<TodayPlanProps> = ({ dueReviewCount, onReview, 
           )}
         </div>
 
+        {/* Without the word lists (offline on a first visit) only the reviews can be planned */}
+        {!(error && !plan) && (
         <div className={row}>
           <p className="text-sm text-stone-700 dark:text-stone-300 min-w-0">
             {!plan ? (
@@ -82,6 +84,7 @@ export const TodayPlan: React.FC<TodayPlanProps> = ({ dueReviewCount, onReview, 
             </button>
           )}
         </div>
+        )}
 
         {plan?.surah && (
           <div className={row}>

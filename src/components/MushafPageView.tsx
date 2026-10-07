@@ -29,9 +29,11 @@ type Line =
 /**
  * The page's 15 lines. Lines without words are where a new surah's title and Bismillah stand: the line just
  * before the surah's first verse holds the Bismillah (not before Al-Fatihah, whose first verse it is, or
- * At-Tawbah, which has none) and the one before that its title.
+ * At-Tawbah, which has none) and the one before that its title. When a surah's first verse is on line 2 of its
+ * page (An-Nisa, Yunus and 18 others), its title stands on the last line of the page before: a page that ends
+ * with a surah's last verse and an empty line 15 holds the next surah's title there.
  */
-const layout = (words: MushafWord[], surahStarts: { surah: number; line: number }[]): Line[] => {
+export const layout = (words: MushafWord[], surahStarts: { surah: number; line: number }[]): Line[] => {
   const byLine = new Map<number, MushafWord[]>();
   for (const w of words) byLine.set(w.line, [...(byLine.get(w.line) ?? []), w]);
   const special = new Map<number, Line>();
@@ -40,6 +42,11 @@ const layout = (words: MushafWord[], surahStarts: { surah: number; line: number 
     if (hasBismillah && !byLine.has(line - 1)) special.set(line - 1, { kind: 'bismillah' });
     const titleLine = hasBismillah ? line - 2 : line - 1;
     if (titleLine >= 1 && !byLine.has(titleLine)) special.set(titleLine, { kind: 'title', surah });
+  }
+  const lastWord = words[words.length - 1];
+  if (lastWord && !byLine.has(LINES)) {
+    const [surah, ayah] = lastWord.location.split(':').map(Number);
+    if (surah < 114 && ayah === SURAH_LIST[surah - 1]?.totalAyahs) special.set(LINES, { kind: 'title', surah: surah + 1 });
   }
   const last = Math.max(LINES, ...byLine.keys());
   const lines: Line[] = [];
@@ -60,6 +67,13 @@ export const MushafPageView: React.FC<{
 }> = ({ page, onSelectPage, onOpenVerse }) => {
   const { data: loaded, error, retry } = useAsync(() => fetchMushafPage(page), [page]);
   const [tajweed, setTajweed] = useState(readTajweedPreference);
+  // What is being typed in the page box; it jumps on Enter or leaving the box, not on every keystroke
+  const [draft, setDraft] = useState<string | null>(null);
+  const goToDraft = () => {
+    const n = Number(draft);
+    if (draft !== null && Number.isInteger(n) && n >= 1 && n <= MUSHAF_PAGES && n !== page) onSelectPage(n);
+    setDraft(null);
+  };
   const data = loaded?.page === page ? loaded : undefined;
   const lines = useMemo(() => (data ? layout(data.words, data.surahStarts) : []), [data]);
   const surahs = useMemo(
@@ -109,10 +123,12 @@ export const MushafPageView: React.FC<{
             type="number"
             min={1}
             max={MUSHAF_PAGES}
-            value={page}
-            onChange={(e) => {
-              const n = Number(e.target.value);
-              if (n >= 1 && n <= MUSHAF_PAGES) onSelectPage(n);
+            value={draft ?? page}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={goToDraft}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') goToDraft();
+              if (e.key === 'Escape') setDraft(null);
             }}
             className="w-20 px-2 py-1.5 rounded-lg bg-white dark:bg-stone-900 ring-1 ring-stone-200 dark:ring-stone-700 text-center tabular-nums font-semibold text-stone-800 dark:text-stone-200"
             aria-label="Page number"

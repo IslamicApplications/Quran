@@ -6,6 +6,7 @@ import { fetchVerse, getRootIndex, formatRoot, describeTag, QWord } from '../ser
 import { VerseAudioBar } from './VerseAudioBar';
 import { TagBadge, WordAudioButton, LoadingBlock, ErrorBlock, useAsync, RecitedVerseText } from './QuranWordBits';
 import { useRecitedWord } from '../hooks/useRecitedWord';
+import { TafsirPanel } from './TafsirPanel';
 
 interface WordByWordVerseViewerProps {
   verseKey?: string;
@@ -195,6 +196,8 @@ export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
                 </p>
               </div>
             )}
+
+            <TafsirPanel verseKey={verse.key} />
           </div>
         ) : null}
       </div>

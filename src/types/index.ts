@@ -152,7 +152,6 @@ export interface CrossVerseComparison {
     highlighted: string;
     translation: string;
     translationAttribution?: string;
-    translationSource?: string;
     meaningInThisVerse: string;
     scholarlyReasoning: string;
     tafsirSource: string;

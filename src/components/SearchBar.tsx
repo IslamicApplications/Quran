@@ -18,7 +18,7 @@ interface SearchBarProps {
   totalCount: number;
 }
 
-const CATEGORIES = [
+export const CATEGORIES = [
   { id: 'all', label: 'All themes' },
   { id: 'divine_names', label: 'Divine Names & Attributes' },
   { id: 'core_theology', label: 'Core Theology & Truth' },

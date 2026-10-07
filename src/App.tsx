@@ -6,7 +6,6 @@ import { searchQuranWords } from './services/quranApi';
 import { Header, ActiveTab } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { Hero } from './components/Hero';
-import { DisclaimerBanner } from './components/DisclaimerBanner';
 import { SearchBar } from './components/SearchBar';
 import { VocabularyGrid, LessonDrawer } from './components/VocabularyGrid';
 import { SettingsModal } from './components/SettingsModal';
@@ -30,6 +29,7 @@ const WordByWordVerseViewer = named(() => import('./components/WordByWordVerseVi
 const SyntacticTreebank = named(() => import('./components/SyntacticTreebank'), 'SyntacticTreebank');
 const RootConcordanceViewer = named(() => import('./components/RootConcordanceViewer'), 'RootConcordanceViewer');
 const SurahReader = named(() => import('./components/SurahReader'), 'SurahReader');
+const SurahVocabulary = named(() => import('./components/SurahVocabulary'), 'SurahVocabulary');
 const CoverageCourse = named(() => import('./components/CoverageCourse'), 'CoverageCourse');
 const Top100VocabularyExplorer = named(
   () => import('./components/Top100VocabularyExplorer'),
@@ -295,8 +295,6 @@ export function App() {
 
         <div className="flex-1 min-w-0 flex flex-col">
           <main className="flex-1 px-4 sm:px-6 lg:px-10 py-6 sm:py-8 w-full max-w-6xl mx-auto">
-            <DisclaimerBanner />
-
             <div key={activeTab} className="animate-fadeIn">
               {/* Keyed by tab with its parent, so switching tabs clears an error */}
               <ErrorBoundary>
@@ -331,30 +329,34 @@ export function App() {
                       />
 
                       {filteredWords.length === 0 ? (
-                        <div className="card p-10 text-center space-y-4 max-w-md mx-auto">
-                          <div className="w-14 h-14 bg-amber-50 dark:bg-amber-950/20 ring-1 ring-amber-200 dark:ring-amber-900/60 text-amber-700 dark:text-amber-300 rounded-2xl flex items-center justify-center mx-auto">
-                            <BookOpen className="w-6 h-6" />
+                        // A surah's own word list follows, so its lack of a detailed lesson needs no notice
+                        // (unless the due or saved filter emptied the lessons, which that list does not apply)
+                        selectedSurah !== undefined && !searchQuery && !onlyDue && !onlySaved ? null : (
+                          <div className="card p-10 text-center space-y-4 max-w-md mx-auto">
+                            <div className="w-14 h-14 bg-amber-50 dark:bg-amber-950/20 ring-1 ring-amber-200 dark:ring-amber-900/60 text-amber-700 dark:text-amber-300 rounded-2xl flex items-center justify-center mx-auto">
+                              <BookOpen className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">No detailed lesson yet</h3>
+                            <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
+                              {searchQuery ? (
+                                <>
+                                  Nothing matched “<strong className="text-stone-700 dark:text-stone-300">{searchQuery}</strong>”.{' '}
+                                </>
+                              ) : null}
+                              {searchQuery
+                                ? 'See matches from the whole Quran below, or try root letters or a transliteration.'
+                                : 'Try root letters, a transliteration or an English meaning.'}
+                            </p>
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={resetFilters}
+                                className="px-4 py-2 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-xl text-sm font-semibold cursor-pointer"
+                              >
+                                Clear filters
+                              </button>
+                            </div>
                           </div>
-                          <h3 className="text-lg font-bold text-stone-900 dark:text-stone-100">No detailed lesson yet</h3>
-                          <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
-                            {searchQuery ? (
-                              <>
-                                Nothing matched “<strong className="text-stone-700 dark:text-stone-300">{searchQuery}</strong>”.{' '}
-                              </>
-                            ) : null}
-                            {searchQuery
-                              ? 'See matches from the whole Quran below, or try root letters or a transliteration.'
-                              : 'Try root letters, a transliteration or an English meaning.'}
-                          </p>
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={resetFilters}
-                              className="px-4 py-2 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-xl text-sm font-semibold cursor-pointer"
-                            >
-                              Clear filters
-                            </button>
-                          </div>
-                        </div>
+                        )
                       ) : (
                         <div className="space-y-6">
                           {filteredWords.length < ALL_VERIFIED_WORDS.length && (
@@ -372,6 +374,16 @@ export function App() {
                             onToggleSave={handleToggleSave}
                           />
                         </div>
+                      )}
+
+                      {selectedSurah !== undefined && (
+                        <SurahVocabulary
+                          surah={selectedSurah}
+                          theme={selectedCategory}
+                          onThemeChange={setSelectedCategory}
+                          onOpenVerse={openVerse}
+                          onOpenSurah={openSurah}
+                        />
                       )}
 
                       <WholeQuranSearch query={searchQuery} onOpenVerse={openVerse} onOpenRoot={openRoot} />

@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Loader2, Languages } from 'lucide-react';
-import { playAudio, englishVerseAudioUrl, verseAudioUrl } from '../services/quranCom';
+import { playAudio, englishVerseAudioUrl } from '../services/quranCom';
+import { reciterAudioUrl, reciterName, hasWordTimings, useReciter } from '../services/reciters';
+import { ReciterSelect } from './ReciterSelect';
 import { followRecitation } from '../hooks/useRecitedWord';
 
 type Mode = 'arabic' | 'english' | 'both';
 
 interface VerseAudioBarProps {
   verseKey: string;
-  /** Arabic recitation URL; defaults to Mishary Rashid Alafasy via Quran.com. */
+  /** Arabic recitation URL; defaults to the reciter chosen in the app. */
   arabicUrl?: string;
   arabicReciter?: string;
 }
@@ -25,14 +27,16 @@ const MODES: { id: Mode; label: string }[] = [
 export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
   verseKey,
   arabicUrl,
-  arabicReciter = 'Mishary Rashid Alafasy'
+  arabicReciter: lessonReciter
 }) => {
+  const reciter = useReciter();
+  const arabicReciter = arabicUrl ? lessonReciter || 'Reciter' : reciterName(reciter);
   const [mode, setMode] = useState<Mode>('arabic');
   const [status, setStatus] = useState<'idle' | 'loading' | 'playing' | 'error'>('idle');
   const [part, setPart] = useState<'arabic' | 'english'>('arabic');
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const arabic = arabicUrl || verseAudioUrl(verseKey);
+  const arabic = arabicUrl || reciterAudioUrl(verseKey, reciter);
   const english = englishVerseAudioUrl(verseKey);
 
   const stop = () => {
@@ -45,14 +49,14 @@ export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
     setStatus('idle');
   };
 
-  // Stop when the verse changes or the bar unmounts
-  useEffect(() => stop, [verseKey]);
+  // Stop when the verse or reciter changes, or the bar unmounts
+  useEffect(() => stop, [verseKey, reciter]);
 
   const playPart = (which: 'arabic' | 'english', thenEnglish: boolean) => {
     const audio = playAudio(which === 'arabic' ? arabic : english);
     audioRef.current = audio;
-    // Word timings exist only for the default recitation, not a lesson's own recording
-    if (which === 'arabic' && !arabicUrl) followRecitation(audio, verseKey);
+    // Word timings exist only for the default recitation, not other reciters or a lesson's own recording
+    if (which === 'arabic' && !arabicUrl && hasWordTimings(reciter)) followRecitation(audio, verseKey);
     setPart(which);
     setStatus('loading');
     audio.onplaying = () => setStatus('playing');
@@ -111,28 +115,31 @@ export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
         </div>
       </div>
 
-      <div
-        role="radiogroup"
-        aria-label="Audio language"
-        className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 ring-1 ring-stone-200/70 dark:ring-stone-700/70"
-      >
-        <Languages className="w-3.5 h-3.5 text-stone-400 mx-1" />
-        {MODES.map((m) => (
-          <button
-            key={m.id}
-            role="radio"
-            aria-checked={mode === m.id}
-            onClick={() => {
-              stop();
-              setMode(m.id);
-            }}
-            className={`px-2.5 py-1 rounded-lg font-semibold whitespace-nowrap transition-all cursor-pointer ${
-              mode === m.id ? 'bg-white dark:bg-stone-900 text-emerald-900 dark:text-emerald-200 shadow-sm ring-1 ring-stone-200 dark:ring-stone-700' : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
-            }`}
-          >
-            {m.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2">
+        {!arabicUrl && <ReciterSelect />}
+        <div
+          role="radiogroup"
+          aria-label="Audio language"
+          className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 ring-1 ring-stone-200/70 dark:ring-stone-700/70"
+        >
+          <Languages className="w-3.5 h-3.5 text-stone-400 mx-1" />
+          {MODES.map((m) => (
+            <button
+              key={m.id}
+              role="radio"
+              aria-checked={mode === m.id}
+              onClick={() => {
+                stop();
+                setMode(m.id);
+              }}
+              className={`px-2.5 py-1 rounded-lg font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                mode === m.id ? 'bg-white dark:bg-stone-900 text-emerald-900 dark:text-emerald-200 shadow-sm ring-1 ring-stone-200 dark:ring-stone-700' : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

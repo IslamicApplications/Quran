@@ -174,7 +174,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }`}
               >
                 <div className="text-xs font-semibold">Amiri Calligraphic</div>
-                <div className="font-quran-amiri text-lg text-emerald-900 dark:text-emerald-200 mt-1">بِسْمِ ٱللَّهِ</div>
+                <div className="font-sample-amiri text-lg text-emerald-900 dark:text-emerald-200 mt-1">بِسْمِ ٱللَّهِ</div>
               </button>
 
               <button
@@ -186,7 +186,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 }`}
               >
                 <div className="text-xs font-semibold">Scheherazade Script</div>
-                <div className="font-quran-scheherazade text-lg text-emerald-900 dark:text-emerald-200 mt-1">بِسْمِ ٱللَّهِ</div>
+                <div className="font-sample-scheherazade text-lg text-emerald-900 dark:text-emerald-200 mt-1">بِسْمِ ٱللَّهِ</div>
               </button>
             </div>
           </div>

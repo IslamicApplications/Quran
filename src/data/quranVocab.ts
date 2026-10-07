@@ -8,6 +8,8 @@ export const SUPPORTED_LANGUAGES: LanguageInfo[] = [
   { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', direction: 'ltr' },
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', direction: 'rtl' },
   { code: 'de', name: 'German', nativeName: 'Deutsch', direction: 'ltr' },
+  { code: 'am', name: 'Amharic', nativeName: 'አማርኛ', direction: 'ltr' },
+  { code: 'so', name: 'Somali', nativeName: 'Soomaali', direction: 'ltr' },
 ];
 
 export const VERIFIED_WORDS: QuranWord[] = [

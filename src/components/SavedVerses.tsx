@@ -83,7 +83,7 @@ const SavedVerse: React.FC<{
           <p dir="rtl" className="font-quran-amiri text-2xl leading-loose text-stone-900 dark:text-stone-100">
             {verse.arabic}
           </p>
-          <p className="text-sm text-stone-600 dark:text-stone-400">{verse.translation}</p>
+          <p dir="auto" className="text-sm text-stone-600 dark:text-stone-400">{verse.translation}</p>
         </>
       ) : (
         <div className="h-16 rounded-xl bg-stone-100 dark:bg-stone-800 animate-pulse" />

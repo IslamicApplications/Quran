@@ -26,12 +26,22 @@ export const readLastJuz = (): number | null => {
   }
 };
 
-const readTranslation = (): TranslationId => {
+// The app language's translation, for a reader who hasn't picked one here
+const BY_LANGUAGE: Partial<Record<string, TranslationId>> = {
+  id: 'indonesian',
+  fr: 'french',
+  ur: 'urdu',
+  tr: 'turkish',
+  de: 'german'
+};
+
+const readTranslation = (language: string): TranslationId => {
+  const fallback = BY_LANGUAGE[language] ?? 'sahih_international';
   try {
     const id = localStorage.getItem(TRANSLATION_KEY);
-    return TRANSLATIONS.find((t) => t.id === id)?.id ?? 'sahih_international';
+    return TRANSLATIONS.find((t) => t.id === id)?.id ?? fallback;
   } catch {
-    return 'sahih_international';
+    return fallback;
   }
 };
 
@@ -87,7 +97,7 @@ export const JuzView: React.FC<{
   const [highlight, setHighlight] = useState(true);
   const [showTranslation, setShowTranslation] = useState(true);
   const [showTransliteration, setShowTransliteration] = useState(false);
-  const [translationId, setTranslationId] = useState<TranslationId>(readTranslation);
+  const [translationId, setTranslationId] = useState<TranslationId>(() => readTranslation(settings.language));
   const [audioMode, setAudioMode] = useState<AudioMode>('arabic');
   const [playing, setPlaying] = useState<{ index: number; part: 'arabic' | 'english' } | null>(null);
   const [selected, setSelected] = useState<QWord | null>(null);
@@ -344,14 +354,14 @@ export const JuzView: React.FC<{
                         {v.aligned ? (
                           <AyahWords
                             verse={v}
-                            className={`${arabicFont} ${ARABIC_SIZES[settings.arabicFontSize]}`}
+                            className={`${arabicFont} ${ARABIC_SIZES[settings.arabicFontSize]} quran-sized`}
                             known={known}
                             highlightUnknown={highlight}
                             selectedLocation={selected?.location}
                             onSelect={selectWord}
                           />
                         ) : (
-                          <p dir="rtl" className={`${arabicFont} ${ARABIC_SIZES[settings.arabicFontSize]} leading-[2.3] text-right text-stone-900 dark:text-stone-100`}>
+                          <p dir="rtl" className={`${arabicFont} ${ARABIC_SIZES[settings.arabicFontSize]} quran-sized leading-[2.3] text-right text-stone-900 dark:text-stone-100`}>
                             {v.arabic}{' '}
                             <span className="text-emerald-700/70 dark:text-emerald-300 text-[0.7em] select-none">﴿{v.ayah.toLocaleString('ar-EG')}﴾</span>
                           </p>

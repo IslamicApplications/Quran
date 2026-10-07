@@ -177,7 +177,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
             <div className="flex items-center gap-3">
               <h2
                 id={`word-heading-${word.id}`}
-                className={`${arabicFontClass} ${fontSizes[settings.arabicFontSize]} font-bold text-emerald-950 dark:text-emerald-100 arabic-text leading-tight`}
+                className={`${arabicFontClass} ${fontSizes[settings.arabicFontSize]} quran-sized font-bold text-emerald-950 dark:text-emerald-100 arabic-text leading-tight`}
               >
                 {word.arabic}
               </h2>
@@ -251,11 +251,11 @@ export const LessonCard: React.FC<LessonCardProps> = ({
                 verse={sample.verse}
                 marked={sample.marked}
                 fontClass={arabicFontClass}
-                className={`${fontSizes[settings.arabicFontSize]} text-right text-amber-100 leading-loose`}
+                className={`${fontSizes[settings.arabicFontSize]} quran-sized text-right text-amber-100 leading-loose`}
               />
             ) : (
               <p
-                className={`${arabicFontClass} ${fontSizes[settings.arabicFontSize]} arabic-text text-right text-amber-100 leading-loose`}
+                className={`${arabicFontClass} ${fontSizes[settings.arabicFontSize]} quran-sized arabic-text text-right text-amber-100 leading-loose`}
               >
                 {primaryVerse.arabicVerseText}
               </p>

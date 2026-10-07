@@ -4,7 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Noto Sans Ethiopic', ui-sans-serif, system-ui, -apple-system, sans-serif;
 
   --animate-fadeIn: fade-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards;
   --animate-slide-in-left: slide-in-left 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -174,12 +174,33 @@
   }
 }
 
-/* Arabic typography helper classes */
-.font-quran-amiri {
+/* Arabic typography: the font and size chosen in Settings, which the app sets on <html> */
+:root {
+  --font-quran: 'Amiri', serif;
+  --quran-zoom: 1;
+}
+
+.font-quran-amiri,
+.font-quran-scheherazade {
+  font-family: var(--font-quran);
+  zoom: var(--quran-zoom);
+}
+
+/* Scale once: Arabic inside Arabic, and text already sized from the setting (the readers' verses) */
+.font-quran-amiri .font-quran-amiri,
+.font-quran-amiri .font-quran-scheherazade,
+.font-quran-scheherazade .font-quran-amiri,
+.font-quran-scheherazade .font-quran-scheherazade,
+.quran-sized {
+  zoom: 1;
+}
+
+/* Fixed samples of each font, for choosing between them in Settings */
+.font-sample-amiri {
   font-family: 'Amiri', serif;
 }
 
-.font-quran-scheherazade {
+.font-sample-scheherazade {
   font-family: 'Scheherazade New', serif;
 }
 

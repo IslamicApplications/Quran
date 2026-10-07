@@ -3,6 +3,7 @@ import { ALL_VERIFIED_WORDS, getWordById } from './data/quranVocab';
 import { DifficultyLevel, Language, AppSettings, UserProgress, StudyList } from './types';
 import { StorageService, getTodayDateString, isDueForReview } from './services/storage';
 import { searchQuranWords } from './services/quranApi';
+import { setContentLanguage } from './services/quranCom';
 import { Header, ActiveTab } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { Hero } from './components/Hero';
@@ -76,6 +77,9 @@ const juzFromHash = (): number | undefined => {
   return tab === 'reader' && kind === 'juz' && juz >= 1 && juz <= 30 ? juz : undefined;
 };
 
+// Arabic text size from Settings, relative to the default "Large"
+const ARABIC_ZOOM: Record<AppSettings['arabicFontSize'], number> = { md: 0.9, lg: 1, xl: 1.15, '2xl': 1.3 };
+
 const TabFallback = () => (
   <div className="flex items-center justify-center py-24 text-stone-400">
     <Loader2 className="w-6 h-6 animate-spin" />
@@ -89,6 +93,8 @@ export function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const online = useOnline();
+  // Verse translations and word meanings load in the chosen language (set before any tab fetches)
+  setContentLanguage(settings.language);
   const [flashcardDeck, setFlashcardDeck] = useState<string>(NEXT_COURSE_DECK);
   const [wbwVerseKey, setWbwVerseKey] = useState<string>('1:2');
   const [rootDictRoot, setRootDictRoot] = useState<string | undefined>(undefined);
@@ -136,6 +142,13 @@ export function App() {
   }, []);
 
   const closeMobileNav = useCallback(() => setIsMobileNavOpen(false), []);
+
+  // The Arabic font and size from Settings, for every Arabic text in the app (see index.css)
+  useEffect(() => {
+    const root = document.documentElement.style;
+    root.setProperty('--font-quran', settings.arabicFontFamily === 'scheherazade' ? "'Scheherazade New', serif" : "'Amiri', serif");
+    root.setProperty('--quran-zoom', String(ARABIC_ZOOM[settings.arabicFontSize]));
+  }, [settings.arabicFontFamily, settings.arabicFontSize]);
 
   const openSurah = (surah: number | undefined) => {
     setReaderSurah(surah);
@@ -308,8 +321,9 @@ export function App() {
                 You're offline. Surahs, tafsir and recitations you've opened before still work.
               </p>
             )}
-            <div key={activeTab} className="animate-fadeIn">
-              {/* Keyed by tab with its parent, so switching tabs clears an error */}
+            <div key={`${activeTab}:${settings.language}`} className="animate-fadeIn">
+              {/* Keyed by tab with its parent, so switching tabs clears an error; and by language, so a tab
+                  reloads its translations when the language changes */}
               <ErrorBoundary>
                 <Suspense fallback={<TabFallback />}>
                   {/* Dictionary & Vocabulary Lessons */}

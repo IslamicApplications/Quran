@@ -7,7 +7,7 @@
  *   verified to align for all 6,236 verses.
  */
 
-const API = 'https://api.quran.com/api/v4';
+export const API = 'https://api.quran.com/api/v4';
 const WORD_AUDIO_BASE = 'https://audio.qurancdn.com/';
 const VERSE_AUDIO_BASE = 'https://verses.quran.com/';
 const COVERAGE_URL = `${import.meta.env.BASE_URL}data/morphology/coverage.json`;
@@ -15,6 +15,48 @@ const MORPHOLOGY_BASE = `${import.meta.env.BASE_URL}data/morphology/`;
 
 /** Saheeh International */
 export const DEFAULT_TRANSLATION_ID = 20;
+
+// ---------- the learner's language ----------
+
+type ContentLanguage = 'en' | 'id' | 'fr' | 'ur' | 'tr' | 'ar' | 'de' | 'am' | 'so';
+
+/**
+ * What each app language reads from Quran.com: a verse translation, and the language of the word-by-word
+ * meanings (Quran.com has these in English, Indonesian, Urdu and Turkish only; others fall back to English).
+ * Arabic readers need no translation: they get al-Tafsir al-Muyassar, a short plain-Arabic explanation.
+ */
+const CONTENT: Record<ContentLanguage, { translation?: number; tafsir?: number; name: string; words: string; rtl?: boolean }> = {
+  en: { translation: 20, name: 'Saheeh International', words: 'en' },
+  id: { translation: 33, name: 'Kementerian Agama RI', words: 'id' },
+  fr: { translation: 31, name: 'Muhammad Hamidullah', words: 'en' },
+  ur: { translation: 54, name: 'مولانا محمد جوناگڑھی', words: 'ur', rtl: true },
+  tr: { translation: 77, name: 'Diyanet İşleri', words: 'tr' },
+  de: { translation: 27, name: 'Bubenheim & Nadeem', words: 'en' },
+  // Sadiq and Sani, also listed by Tarteel's QUL as Amharic translation 234
+  am: { translation: 87, name: 'Sadiq and Sani', words: 'en' },
+  // Mahmud Muhammad Abduh, also listed by Tarteel's QUL as Somali translation 231
+  so: { translation: 46, name: 'Mahmud Muhammad Abduh', words: 'en' },
+  ar: { tafsir: 16, name: 'التفسير الميسر', words: 'en', rtl: true }
+};
+
+let language: ContentLanguage = 'en';
+
+/** Set by the app from Settings; verses and word meanings load in this language from then on. */
+export const setContentLanguage = (lang: string): void => {
+  if (lang in CONTENT) language = lang as ContentLanguage;
+};
+
+/** The app language that verses and word meanings load in. */
+export const contentLanguage = (): string => language;
+
+/** The source of the verse translations now shown, and whether it reads right to left. */
+export const translationSource = (): { name: string; rtl: boolean } => ({
+  name: CONTENT[language].name,
+  rtl: !!CONTENT[language].rtl
+});
+
+/** Whether word meanings are in the chosen language (Quran.com has no French, German or Arabic glosses). */
+export const wordMeaningsTranslated = (): boolean => CONTENT[language].words === language;
 export const DEFAULT_RECITATION_ID = 7; // Mishary Rashid Alafasy
 
 export interface QWord {
@@ -325,7 +367,21 @@ interface ApiVerse {
   audio?: { segments?: number[][] };
 }
 
-const VERSE_QUERY = `words=true&word_fields=text_uthmani,location&fields=text_uthmani&translations=${DEFAULT_TRANSLATION_ID}&audio=${DEFAULT_RECITATION_ID}`;
+const verseQuery = () => {
+  const c = CONTENT[language];
+  return `words=true&word_fields=text_uthmani,location&fields=text_uthmani&translations=${c.translation ?? DEFAULT_TRANSLATION_ID}&language=${c.words}&audio=${DEFAULT_RECITATION_ID}`;
+};
+
+/** Al-Muyassar's text for the verses of a Quran.com response, for Arabic readers. */
+const tafsirFor = async (path: string): Promise<Map<string, string>> => {
+  const tafsir = CONTENT[language].tafsir;
+  if (!tafsir) return new Map();
+  const data = await getJson<{ tafsir?: { text: string; verses: Record<string, unknown> }; tafsirs?: { verse_key: string; text: string }[] }>(
+    `${API}/tafsirs/${tafsir}/${path}`
+  );
+  if (data.tafsirs) return new Map(data.tafsirs.map((t) => [t.verse_key, cleanTranslation(t.text)]));
+  return new Map(Object.keys(data.tafsir?.verses ?? {}).map((key) => [key, cleanTranslation(data.tafsir!.text)]));
+};
 
 /** When a word is recited in the verse's Alafasy recording, in milliseconds. */
 export interface WordTiming {
@@ -400,18 +456,20 @@ const toVerse = (v: ApiVerse, morph: SurahMorphology): QVerse => {
 };
 
 export const fetchVerse = (key: string): Promise<QVerse> =>
-  cached(`verse:${key}`, async () => {
+  cached(`verse:${language}:${key}`, async () => {
     const surah = Number(key.split(':')[0]);
-    const [data, morph] = await Promise.all([
-      getJson<{ verse: ApiVerse }>(`${API}/verses/by_key/${key}?${VERSE_QUERY}`),
-      getSurahMorphology(surah)
+    const [data, morph, tafsir] = await Promise.all([
+      getJson<{ verse: ApiVerse }>(`${API}/verses/by_key/${key}?${verseQuery()}`),
+      getSurahMorphology(surah),
+      tafsirFor(`by_ayah/${key}`)
     ]);
-    return toVerse(data.verse, morph);
+    const verse = toVerse(data.verse, morph);
+    return tafsir.has(key) ? { ...verse, translation: tafsir.get(key)! } : verse;
   });
 
 /** Word timings for the verse's default recitation (verseAudioUrl), if Quran.com has usable ones. */
 export const getVerseTimings = async (key: string): Promise<WordTiming[] | undefined> => {
-  if (!timingsByKey.has(key)) await fetchVerse(key);
+  if (!timingsByKey.has(key)) await fetchVerse(key).catch(() => undefined);
   return timingsByKey.get(key);
 };
 
@@ -433,15 +491,19 @@ export interface ChapterPage {
 }
 
 export const fetchChapterPage = (surah: number, page = 1, perPage = 20): Promise<ChapterPage> =>
-  cached(`chapter:${surah}:${page}:${perPage}`, async () => {
-    const [data, morph] = await Promise.all([
+  cached(`chapter:${language}:${surah}:${page}:${perPage}`, async () => {
+    const [data, morph, tafsir] = await Promise.all([
       getJson<{ verses: ApiVerse[]; pagination: { next_page: number | null; total_records: number } }>(
-        `${API}/verses/by_chapter/${surah}?${VERSE_QUERY}&per_page=${perPage}&page=${page}`
+        `${API}/verses/by_chapter/${surah}?${verseQuery()}&per_page=${perPage}&page=${page}`
       ),
-      getSurahMorphology(surah)
+      getSurahMorphology(surah),
+      tafsirFor(`by_chapter/${surah}?per_page=${perPage}&page=${page}`)
     ]);
     return {
-      verses: data.verses.map((v) => toVerse(v, morph)),
+      verses: data.verses.map((v) => {
+        const verse = toVerse(v, morph);
+        return tafsir.has(verse.key) ? { ...verse, translation: tafsir.get(verse.key)! } : verse;
+      }),
       nextPage: data.pagination.next_page,
       totalVerses: data.pagination.total_records
     };

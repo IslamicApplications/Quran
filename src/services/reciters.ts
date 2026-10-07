@@ -7,12 +7,26 @@
 import { useSyncExternalStore } from 'react';
 import { DEFAULT_RECITATION_ID, getRecitationTimings, type WordTiming } from './quranCom';
 
+const VERSES = 'https://verses.quran.com/';
+const MIRROR = 'https://mirrors.quranicaudio.com/everyayah/';
+
+// Ids 1–5 follow the Quran API's numbering (its files are Data/<id>/…); the rest are Quran.com recitations,
+// whose word timings come from Tarteel's Quranic Universal Library (QUL)
 export const RECITERS = [
-  { id: 1, name: 'Mishary Rashid Alafasy', quranCom: { recitation: DEFAULT_RECITATION_ID, folder: 'Alafasy' } },
-  { id: 2, name: 'Abu Bakr Al-Shatri', quranCom: { recitation: 4, folder: 'Shatri' } },
+  { id: 1, name: 'Mishary Rashid Alafasy', quranCom: { recitation: DEFAULT_RECITATION_ID, base: `${VERSES}Alafasy/mp3/` } },
+  { id: 2, name: 'Abu Bakr Al-Shatri', quranCom: { recitation: 4, base: `${VERSES}Shatri/mp3/` } },
   { id: 3, name: 'Nasser Al-Qatami' },
   { id: 4, name: 'Yasser Al-Dosari' },
-  { id: 5, name: 'Hani Ar-Rifai', quranCom: { recitation: 5, folder: 'Rifai' } }
+  { id: 5, name: 'Hani Ar-Rifai', quranCom: { recitation: 5, base: `${VERSES}Rifai/mp3/` } },
+  { id: 6, name: 'AbdulBaset AbdulSamad (Murattal)', quranCom: { recitation: 2, base: `${VERSES}AbdulBaset/Murattal/mp3/` } },
+  { id: 7, name: 'AbdulBaset AbdulSamad (Mujawwad)', quranCom: { recitation: 1, base: `${VERSES}AbdulBaset/Mujawwad/mp3/` } },
+  { id: 8, name: 'Abdur-Rahman as-Sudais', quranCom: { recitation: 3, base: `${VERSES}Sudais/mp3/` } },
+  { id: 9, name: 'Mahmoud Khalil Al-Husary', quranCom: { recitation: 6, base: `${MIRROR}Husary_64kbps/` } },
+  { id: 10, name: 'Al-Husary (Muallim, for learners)', quranCom: { recitation: 12, base: `${MIRROR}Husary_Muallim_128kbps/` } },
+  { id: 11, name: 'Mohamed Siddiq al-Minshawi (Murattal)', quranCom: { recitation: 9, base: `${VERSES}Minshawi/Murattal/mp3/` } },
+  { id: 12, name: 'Mohamed Siddiq al-Minshawi (Mujawwad)', quranCom: { recitation: 8, base: `${VERSES}Minshawi/Mujawwad/mp3/` } },
+  { id: 13, name: "Sa'ud ash-Shuraym", quranCom: { recitation: 10, base: `${VERSES}Shuraym/mp3/` } },
+  { id: 14, name: 'Mohamed al-Tablawi', quranCom: { recitation: 11, base: `${MIRROR}Mohammad_al_Tablaway_128kbps/` } }
 ] as const;
 
 export type ReciterId = (typeof RECITERS)[number]['id'];
@@ -34,7 +48,7 @@ export const hasWordTimings = (id: ReciterId): boolean => !!quranComOf(id);
 export const reciterAudioUrl = (verseKey: string, id: ReciterId): string => {
   const [s, a] = verseKey.split(':');
   const qc = quranComOf(id);
-  if (qc) return `https://verses.quran.com/${qc.folder}/mp3/${s.padStart(3, '0')}${a.padStart(3, '0')}.mp3`;
+  if (qc) return `${qc.base}${s.padStart(3, '0')}${a.padStart(3, '0')}.mp3`;
   return `https://the-quran-project.github.io/Quran-Audio/Data/${id}/${s}_${a}.mp3`;
 };
 

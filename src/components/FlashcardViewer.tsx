@@ -172,7 +172,7 @@ const CourseFace: React.FC<{ word: CoverageWord; isFlipped: boolean; showTransli
             marked={w - 1}
             className="text-base sm:text-lg text-amber-100 text-right leading-relaxed"
           />
-          <p className="text-emerald-100 italic text-[11px]">"{data.verse.translation}"</p>
+          <p dir="auto" className="text-emerald-100 italic text-[11px]">"{data.verse.translation}"</p>
         </div>
       )}
 

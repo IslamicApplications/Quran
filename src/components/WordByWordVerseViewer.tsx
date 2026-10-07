@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Layers, ChevronLeft, ChevronRight, Sparkles, BookMarked, ChevronDown, ScrollText } from 'lucide-react';
 import { VERSE_TREEBANKS } from '../data/corpusData';
 import { SURAH_LIST } from '../data/surahList';
-import { fetchVerse, getRootIndex, formatRoot, describeTag, QWord } from '../services/quranCom';
+import { fetchVerse, getRootIndex, formatRoot, describeTag, translationSource, QWord } from '../services/quranCom';
 import { VerseAudioBar } from './VerseAudioBar';
 import { TagBadge, WordAudioButton, LoadingBlock, ErrorBlock, useAsync, RecitedVerseText } from './QuranWordBits';
 import { useRecitedWord } from '../hooks/useRecitedWord';
@@ -149,8 +149,8 @@ export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
               </div>
               <RecitedVerseText verse={verse} className="text-3xl sm:text-4xl text-amber-100 leading-loose" />
               <p className="text-sm text-emerald-100 italic pt-2 border-t border-emerald-800/60">
-                “{verse.translation}”
-                <span className="not-italic text-emerald-400 text-xs ml-2">— Saheeh International</span>
+                <span dir="auto">“{verse.translation}”</span>
+                <span className="not-italic text-emerald-400 text-xs ml-2">— {translationSource().name}</span>
               </p>
             </div>
 
@@ -246,7 +246,7 @@ const WordCard: React.FC<{ word: QWord; selected: boolean; recited: boolean; onS
     <div className="font-quran-amiri text-3xl font-bold text-emerald-950 dark:text-emerald-100 mt-3 leading-relaxed">{word.arabic}</div>
     <div dir="ltr" className="space-y-0.5">
       <div className="text-xs font-semibold text-stone-500 dark:text-stone-400">{word.transliteration}</div>
-      <div className="text-sm font-semibold text-stone-800 dark:text-stone-200 leading-snug">{word.translation}</div>
+      <div dir="auto" className="text-sm font-semibold text-stone-800 dark:text-stone-200 leading-snug">{word.translation}</div>
     </div>
     <div dir="ltr" className="flex flex-wrap items-center justify-center gap-1 pt-1">
       {word.root && (

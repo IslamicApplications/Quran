@@ -1,6 +1,6 @@
 export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
 
-export type Language = 'en' | 'id' | 'fr' | 'ur' | 'tr' | 'ar' | 'de';
+export type Language = 'en' | 'id' | 'fr' | 'ur' | 'tr' | 'ar' | 'de' | 'am' | 'so';
 
 export interface LanguageInfo {
   code: Language;

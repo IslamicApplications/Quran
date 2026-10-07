@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchVerseTafsirs, tafsirBlocks } from './tafsir';
+import { fetchVerseTafsirs, htmlToMarkdown, tafsirBlocks } from './tafsir';
 
 describe('tafsirBlocks', () => {
   it('splits paragraphs and reads # lines as headings', () => {
@@ -40,5 +40,17 @@ describe('fetchVerseTafsirs', () => {
     expect(result.tafsirs.ibn_kathir).toEqual({ text: 'the Prophet ﷺ said', passage: '112:1–112:4' });
     expect(result.tafsirs.maarif).toEqual({ text: 'Verse 112:2', passage: undefined });
     expect(Object.keys(result.tafsirs)).toEqual(['ibn_kathir', 'maarif']);
+  });
+});
+
+describe('htmlToMarkdown', () => {
+  it("keeps Quran.com's headings and paragraphs, drops every other tag and decodes entities", () => {
+    const html = '<h2>Name</h2>\n<p>The Surah is <b>named</b>&nbsp;Al-Ikhlas.</p><p><span class="arabic">{ اللَّهُ الصَّمَدُ }</span> أي</p><script>x</script>';
+    expect(tafsirBlocks(htmlToMarkdown(html))).toEqual([
+      { kind: 'heading', text: 'Name' },
+      { kind: 'text', text: 'The Surah is named Al-Ikhlas.' },
+      { kind: 'arabic', text: '{ اللَّهُ الصَّمَدُ } أي' },
+      { kind: 'text', text: 'x' }
+    ]);
   });
 });

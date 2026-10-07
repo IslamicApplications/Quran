@@ -296,7 +296,7 @@ const Occurrence: React.FC<{ location: string; onOpenVerse?: (key: string) => vo
         ))}
       </p>
       <div className="flex items-end justify-between gap-3">
-        <p className="text-xs text-stone-500 dark:text-stone-400 italic leading-relaxed">“{data.verse.translation}”</p>
+        <p dir="auto" className="text-xs text-stone-500 dark:text-stone-400 italic leading-relaxed">“{data.verse.translation}”</p>
         {onOpenVerse && (
           <button
             onClick={() => onOpenVerse(`${s}:${a}`)}

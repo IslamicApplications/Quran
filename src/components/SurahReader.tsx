@@ -20,6 +20,7 @@ import { SURAH_LIST } from '../data/surahList';
 import {
   getSurahVocab,
   surahCoverage,
+  translationSource,
   fetchChapterPage,
   playAudio,
   englishVerseAudioUrl,
@@ -36,6 +37,7 @@ import { ReciterSelect } from './ReciterSelect';
 import { reciterAudioUrl, reciterName, reciterStore, useReciter } from '../services/reciters';
 import { JuzList, JuzView, juzRangeLabel, readLastJuz } from './JuzReader';
 import { TafsirPanel } from './TafsirPanel';
+import { SurahInfoCard } from './SurahInfoCard';
 import { MemorizePanel, UnderstandPanel, defaultMemorize, type MemorizeSettings, type PracticeMode } from './PracticeControls';
 import { VerseBookmarkButton, VerseNote } from './VerseBookmark';
 import { understoodVersesStore, useUnderstoodVerses } from '../hooks/useVerseMarks';
@@ -434,6 +436,8 @@ const SurahView: React.FC<
         </div>
       </section>
 
+      <SurahInfoCard surah={surah} />
+
       {/* Words to learn */}
       {toLearn.length > 0 && (
         <div className="card overflow-hidden">
@@ -609,7 +613,7 @@ const SurahView: React.FC<
                   <div className="flex-1 min-w-0 space-y-3">
                     <AyahWords
                       verse={v}
-                      className={`${arabicFont} ${ARABIC_SIZES[settings.arabicFontSize]}`}
+                      className={`${arabicFont} ${ARABIC_SIZES[settings.arabicFontSize]} quran-sized`}
                       known={known}
                       highlightUnknown={highlight}
                       selectedLocation={selected?.location}
@@ -620,7 +624,7 @@ const SurahView: React.FC<
                     {practice === 'understand' ? (
                       revealed.has(v.key) ? (
                         <div className="space-y-2">
-                          <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">{v.translation}</p>
+                          <p dir="auto" className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">{v.translation}</p>
                           <div className="flex flex-wrap items-center gap-2 text-xs">
                             <span className="text-stone-500 dark:text-stone-400">Did you understand it?</span>
                             <button
@@ -661,7 +665,7 @@ const SurahView: React.FC<
                         </button>
                       )
                     ) : showTranslation && (
-                      <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                      <p dir="auto" className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
                         {playing?.key === v.key && playing.part === 'english' && (
                           <span className="inline-block mr-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
                             Playing
@@ -701,7 +705,7 @@ const SurahView: React.FC<
       </div>
 
       <p className="text-[11px] text-stone-400 text-center pb-24">
-        Text &amp; translation (Saheeh International): Quran.com · Arabic audio: {reciterName(reciter)} · English
+        Text &amp; translation ({translationSource().name}): Quran.com · Arabic audio: {reciterName(reciter)} · English
         audio: Ibrahim Walk (EveryAyah.com) · Word data: Quranic Arabic Corpus
       </p>
 

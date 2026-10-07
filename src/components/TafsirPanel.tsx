@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { ScrollText, ChevronDown } from 'lucide-react';
-import { fetchVerseTafsirs, tafsirBlocks, TAFSIRS, TafsirId } from '../services/tafsir';
+import { loadTafsir, tafsirBlocks, tafsirsFor, TAFSIRS, TafsirId } from '../services/tafsir';
+import { contentLanguage } from '../services/quranCom';
 import { LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
 
 const TAFSIR_KEY = 'ayah-words-tafsir';
@@ -10,7 +11,8 @@ const PREVIEW_BLOCKS = 4;
 const readTafsir = (): TafsirId => {
   try {
     const id = localStorage.getItem(TAFSIR_KEY);
-    return TAFSIRS.some((t) => t.id === id) ? (id as TafsirId) : 'ibn_kathir';
+    // A tafsir saved under another language (Urdu) may not be offered now
+    return tafsirsFor(contentLanguage()).some((t) => t.id === id) ? (id as TafsirId) : 'ibn_kathir';
   } catch {
     return 'ibn_kathir';
   }
@@ -20,12 +22,14 @@ const readTafsir = (): TafsirId => {
 export const TafsirPanel: React.FC<{ verseKey: string; className?: string }> = ({ verseKey, className = '' }) => {
   const [tafsir, setTafsirState] = useState<TafsirId>(readTafsir);
   const [expandedFor, setExpandedFor] = useState<string | null>(null);
-  const { data: loaded, loading, error, retry } = useAsync(() => fetchVerseTafsirs(verseKey), [verseKey]);
-  // While another verse loads, keep the previous verse's commentary off screen
-  const data = loaded?.verseKey === verseKey ? loaded : undefined;
-  const current = data?.tafsirs[tafsir];
+  const offered = tafsirsFor(contentLanguage());
+  const { data: loaded, loading, error, retry } = useAsync(() => loadTafsir(verseKey, tafsir), [verseKey, tafsir]);
+  // While another verse or tafsir loads, keep the previous commentary off screen
+  const data = loaded?.verseKey === verseKey && loaded.id === tafsir ? loaded : undefined;
+  const current = data;
   const sectionRef = useRef<HTMLElement>(null);
   const info = TAFSIRS.find((t) => t.id === tafsir)!;
+  const rtl = 'rtl' in info && info.rtl;
   const blocks = useMemo(() => (current ? tafsirBlocks(current.text) : []), [current]);
   const expanded = expandedFor === `${tafsir}:${verseKey}`;
   const shown = expanded ? blocks : blocks.slice(0, PREVIEW_BLOCKS);
@@ -55,7 +59,7 @@ export const TafsirPanel: React.FC<{ verseKey: string; className?: string }> = (
           Tafsir of {verseKey}
         </h3>
         <div className="flex flex-wrap gap-1.5">
-          {TAFSIRS.map((t) => (
+          {offered.map((t) => (
             <button
               key={t.id}
               onClick={() => setTafsir(t.id)}
@@ -64,7 +68,7 @@ export const TafsirPanel: React.FC<{ verseKey: string; className?: string }> = (
                 tafsir === t.id
                   ? 'bg-emerald-900 text-white dark:bg-emerald-400/10 dark:text-emerald-200 dark:ring-1 dark:ring-emerald-400/20'
                   : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-400'
-              }`}
+              } ${'rtl' in t ? 'font-quran-amiri text-sm' : ''}`}
             >
               {t.label}
             </button>
@@ -79,7 +83,7 @@ export const TafsirPanel: React.FC<{ verseKey: string; className?: string }> = (
       ) : blocks.length === 0 ? (
         <p className="text-sm text-stone-500 dark:text-stone-400">{info.name} has no commentary on this verse.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3" dir={rtl ? 'rtl' : undefined}>
           {current?.passage && (
             <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/20 ring-1 ring-amber-200 dark:ring-amber-900/60 rounded-lg px-2.5 py-1 inline-block">
               Commentary on the passage {current.passage}
@@ -90,7 +94,7 @@ export const TafsirPanel: React.FC<{ verseKey: string; className?: string }> = (
               <h4 key={i} className="font-bold text-stone-900 dark:text-stone-100 text-sm pt-1">
                 {b.text}
               </h4>
-            ) : b.kind === 'arabic' ? (
+            ) : b.kind === 'arabic' && !rtl ? (
               <p
                 key={i}
                 dir="rtl"
@@ -99,7 +103,7 @@ export const TafsirPanel: React.FC<{ verseKey: string; className?: string }> = (
                 {b.text}
               </p>
             ) : (
-              <p key={i} className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed">
+              <p key={i} className={`text-stone-700 dark:text-stone-300 leading-relaxed ${rtl ? 'font-quran-amiri text-lg leading-loose' : 'text-sm'}`}>
                 {b.text}
               </p>
             )
@@ -108,6 +112,7 @@ export const TafsirPanel: React.FC<{ verseKey: string; className?: string }> = (
             <button
               onClick={toggleExpanded}
               className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 dark:hover:text-emerald-100 cursor-pointer"
+              dir="ltr"
             >
               {expanded ? 'Show less' : 'Read the full commentary'}
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
@@ -118,7 +123,8 @@ export const TafsirPanel: React.FC<{ verseKey: string; className?: string }> = (
 
       {data && (
         <p className="text-[11px] text-stone-400 border-t border-stone-100 dark:border-stone-800 pt-3">
-          {info.name} · from Quran.com via the Quran API (quranapi.pages.dev)
+          {info.name} · {info.source === 'quranCom' ? 'Quran.com' : 'the Quran API (quranapi.pages.dev)'}, from Tarteel's
+          Quranic Universal Library
         </p>
       )}
     </section>

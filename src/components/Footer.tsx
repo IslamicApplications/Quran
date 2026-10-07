@@ -31,8 +31,8 @@ export const Footer: React.FC = () => {
           <span>&copy; {new Date().getFullYear()} Ayah Words · Built for sincere learners of Quranic Arabic.</span>
           {/* The corpus data is GPL-3.0, which requires this credit */}
           <span className="text-center sm:text-right">
-            Word data: Quranic Arabic Corpus (GPL-3.0) · Text &amp; audio: Quran.com, EveryAyah · Tafsir &amp;
-            reciters: Quran API
+            Word data: Quranic Arabic Corpus (GPL-3.0) · Text, tafsir &amp; audio: Quran.com, EveryAyah, Quran API ·
+            Translations, tafsirs, surah info &amp; recitation timings: Tarteel's Quranic Universal Library
           </span>
         </div>
       </div>

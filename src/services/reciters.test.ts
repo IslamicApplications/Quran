@@ -6,7 +6,8 @@ describe('reciterAudioUrl', () => {
     expect(reciterAudioUrl('112:1', 1)).toBe('https://verses.quran.com/Alafasy/mp3/112001.mp3');
     expect(reciterAudioUrl('2:255', 2)).toBe('https://verses.quran.com/Shatri/mp3/002255.mp3');
     expect(reciterAudioUrl('9:1', 5)).toBe('https://verses.quran.com/Rifai/mp3/009001.mp3');
-    for (const id of [1, 2, 5] as const) expect(hasWordTimings(id)).toBe(true);
+    expect(reciterAudioUrl('2:255', 9)).toBe('https://mirrors.quranicaudio.com/everyayah/Husary_64kbps/002255.mp3');
+    for (const id of [1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] as const) expect(hasWordTimings(id)).toBe(true);
   });
 
   it('plays the Quran API files for the reciters Quran.com does not have', () => {

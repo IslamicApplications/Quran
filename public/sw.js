@@ -13,7 +13,7 @@ const DATA = 'data-v1';
 const AUDIO = 'audio-v1';
 const BASE = new URL('./', self.location).pathname; // "/Quran/" on GitHub Pages
 
-const AUDIO_HOSTS = ['verses.quran.com', 'the-quran-project.github.io', 'everyayah.com', 'audio.qurancdn.com'];
+const AUDIO_HOSTS = ['verses.quran.com', 'mirrors.quranicaudio.com', 'the-quran-project.github.io', 'everyayah.com', 'audio.qurancdn.com'];
 const DATA_HOSTS = ['api.quran.com', 'quranapi.pages.dev', 'ummahapi.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 const LIMITS = { [SHELL]: 150, [DATA]: 3000, [AUDIO]: 600 };
 

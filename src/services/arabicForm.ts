@@ -12,7 +12,8 @@
 export const spokenForm = (text: string): string =>
   text
     .normalize('NFC') // also orders marks: fatha/kasra/tanween before shadda
-    .replace(/[ۖ-ۭؕ-ؚـٓ-ٕ\s]/g, '')
+    // Marks first: a plain letter (tatweel) right before a mark reads as one combined character
+    .replace(/[\u0653-\u0655\u06D6-\u06ED\u0615-\u061A\u0640\s]/g, '')
     .replace(/^([^ً-ْ])([ً-ِ]?)ّ/, '$1$2') // shadda joining the word to the one before: لَّيْسَ
     .replace(/[ئؤ]/g, 'ء') // hamza seat: إِسْرَٰٓءِيل = إِسْرائِيل
     .replace(/ىٰ/g, 'ى')

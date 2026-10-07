@@ -283,7 +283,8 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFlipped, currentIndex, cards, ratedIds]);
+    // Re-bound on every render: the handlers it calls read the current card and rating state
+  });
 
   const handleNext = () => {
     window.clearTimeout(advanceTimer.current);

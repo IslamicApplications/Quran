@@ -18,6 +18,8 @@ import { BookOpen, Loader2 } from 'lucide-react';
 
 // Secondary tabs are code-split so the first paint only ships the vocabulary feed.
 const named = <T extends Record<string, unknown>, K extends keyof T>(loader: () => Promise<T>, key: K) =>
+  // Each tab has its own props; the lazy wrapper only passes them through
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lazy(() => loader().then((m) => ({ default: m[key] as React.ComponentType<any> })));
 
 const FlashcardViewer = named(() => import('./components/FlashcardViewer'), 'FlashcardViewer');

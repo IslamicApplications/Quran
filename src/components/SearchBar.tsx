@@ -159,7 +159,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
         <div className="flex items-center gap-3 text-xs text-stone-500 dark:text-stone-400">
           <span>
-            <strong className="text-stone-800 dark:text-stone-200 tabular-nums">{resultsCount}</strong> of {totalCount} words
+            <strong className="text-stone-800 dark:text-stone-200 tabular-nums">{resultsCount}</strong> of {totalCount} detailed lessons
           </span>
           {hasFilters && (
             <button

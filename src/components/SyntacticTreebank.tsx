@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Network, Sparkles, BookOpen, Layers, ArrowRight, Info } from 'lucide-react';
+import { Network, Sparkles, ArrowRight, Info } from 'lucide-react';
 import { VERSE_TREEBANKS, VerseTreebank } from '../data/corpusData';
 
 export const SyntacticTreebank: React.FC = () => {
@@ -50,6 +50,9 @@ export const SyntacticTreebank: React.FC = () => {
           </div>
           <p className="font-quran-amiri text-2xl sm:text-3xl arabic-text text-right text-amber-100">
             {currentVerse.arabicVerseText}
+          </p>
+          <p className="text-sm text-emerald-100/90 italic">
+            "{currentVerse.translation}" <span className="not-italic text-emerald-400 text-xs">— Saheeh International</span>
           </p>
         </div>
 
@@ -113,6 +116,17 @@ export const SyntacticTreebank: React.FC = () => {
               );
             })}
           </div>
+        </div>
+
+        {/* Whole-verse grammatical analysis */}
+        <div className="bg-amber-50/60 dark:bg-amber-950/20 p-4 rounded-2xl ring-1 ring-amber-200/70 dark:ring-amber-900/60 space-y-1.5">
+          <strong className="text-amber-950 dark:text-amber-100 font-bold text-sm flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-amber-700 dark:text-amber-300" />
+            <span>Verse syntax overview (الإعراب الإجمالي)</span>
+          </strong>
+          <p dir="rtl" className="font-quran-amiri text-base text-stone-800 dark:text-stone-200 leading-relaxed">
+            {currentVerse.summaryIrab}
+          </p>
         </div>
 
         {/* Treebank Academic Explanation */}

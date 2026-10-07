@@ -1,15 +1,10 @@
 import React from 'react';
 import {
   BarChart3,
-  CheckCircle2,
   Clock,
   Sparkles,
   Award,
-  AlertCircle,
-  Layers,
-  BookOpen,
-  Calendar,
-  RotateCcw
+  AlertCircle
 } from 'lucide-react';
 import { UserProgress, QuranWord } from '../types';
 import { getTodayDateString, isDueForReview } from '../services/storage';

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, ArrowRight, Play, Pause, Highlighter, Languages, Type } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Play, Pause, Highlighter, Languages, Type, ScrollText } from 'lucide-react';
 import { SURAH_LIST } from '../data/surahList';
 import { playAudio, englishVerseAudioUrl, fetchVerse, QWord } from '../services/quranCom';
 import { reciterAudioUrl, reciterName, reciterStore, hasWordTimings, useReciter } from '../services/reciters';
@@ -10,6 +10,7 @@ import { followRecitation } from '../hooks/useRecitedWord';
 import { LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
 import { ARABIC_SIZES, AudioMode, AyahWords, BISMILLAH, Segmented, ToggleChip, WordSheet } from './ReaderParts';
 import { ReciterSelect } from './ReciterSelect';
+import { TafsirPanel } from './TafsirPanel';
 
 const LAST_JUZ_KEY = 'ayah-words-last-juz';
 const TRANSLATION_KEY = 'ayah-words-juz-translation';
@@ -91,6 +92,7 @@ export const JuzView: React.FC<{
   const [selected, setSelected] = useState<QWord | null>(null);
   const [shown, setShown] = useState(BATCH);
   const reciter = useReciter();
+  const [tafsirKey, setTafsirKey] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -323,6 +325,17 @@ export const JuzView: React.FC<{
                         >
                           {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                         </button>
+                        <button
+                          onClick={() => setTafsirKey(tafsirKey === v.key ? null : v.key)}
+                          aria-label={`Tafsir of ayah ${v.key}`}
+                          aria-expanded={tafsirKey === v.key}
+                          title="Tafsir"
+                          className={`w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors ${
+                            tafsirKey === v.key ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300' : 'text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/25'
+                          }`}
+                        >
+                          <ScrollText className="w-3.5 h-3.5" />
+                        </button>
                       </div>
 
                       <div className="flex-1 min-w-0 space-y-3">
@@ -357,6 +370,7 @@ export const JuzView: React.FC<{
                             {v.translations[translationId] || v.translation}
                           </p>
                         )}
+                        {tafsirKey === v.key && <TafsirPanel verseKey={v.key} className="animate-fadeIn" />}
                       </div>
                     </div>
                   </div>

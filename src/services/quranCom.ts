@@ -7,6 +7,8 @@
  *   verified to align for all 6,236 verses.
  */
 
+import { fetchQuranEncSurah, quranEncAudioUrl, spokenLanguage, translationStore } from './translations';
+
 export const API = 'https://api.quran.com/api/v4';
 const WORD_AUDIO_BASE = 'https://audio.qurancdn.com/';
 const VERSE_AUDIO_BASE = 'https://verses.quran.com/';
@@ -49,11 +51,41 @@ export const setContentLanguage = (lang: string): void => {
 /** The app language that verses and word meanings load in. */
 export const contentLanguage = (): string => language;
 
+/** Quran.com's translation for a language, offered first in the translation picker. */
+export const defaultTranslationName = (lang: string): string => CONTENT[lang as ContentLanguage]?.name ?? CONTENT.en.name;
+
+/** The QuranEnc translation chosen for the current language, if any (Arabic always reads al-Muyassar) */
+const quranEncChoice = () => (language === 'ar' ? null : translationStore.get(language));
+
 /** The source of the verse translations now shown, and whether it reads right to left. */
-export const translationSource = (): { name: string; rtl: boolean } => ({
-  name: CONTENT[language].name,
-  rtl: !!CONTENT[language].rtl
-});
+export const translationSource = (): { name: string; rtl: boolean } => {
+  const choice = quranEncChoice();
+  // QuranEnc's terms: credit the publisher and QuranEnc.com, with the version
+  if (choice) return { name: `${choice.title} · QuranEnc.com · version ${choice.version}`, rtl: choice.rtl };
+  return { name: CONTENT[language].name, rtl: !!CONTENT[language].rtl };
+};
+
+/** Replaces Quran.com's translation with the chosen QuranEnc one, text and footnotes unmodified. */
+const withChosenTranslation = async (verses: QVerse[]): Promise<QVerse[]> => {
+  const choice = quranEncChoice();
+  if (!choice || !verses.length) return verses;
+  const surahs = [...new Set(verses.map((v) => v.surah))];
+  const bySurah = new Map(await Promise.all(surahs.map(async (s) => [s, await fetchQuranEncSurah(choice.key, s)] as const)));
+  return verses.map((v) => {
+    const t = bySurah.get(v.surah)?.get(v.ayah);
+    return t ? { ...v, translation: t.text, translationNotes: t.footnotes || undefined } : v;
+  });
+};
+
+/** The spoken translation for a verse: the chosen QuranEnc translation's own recording, else Saheeh International in English. */
+export const translationAudio = (verseKey: string): { url: string; language: string; reader: string } => {
+  const choice = quranEncChoice();
+  if (choice?.spoken)
+    return { url: quranEncAudioUrl(choice.key, verseKey), language: spokenLanguage(choice.key) ?? 'Translation', reader: choice.title };
+  return { url: englishVerseAudioUrl(verseKey), language: 'English', reader: 'Ibrahim Walk (Saheeh International)' };
+};
+
+const translationCacheKey = () => `${language}:${quranEncChoice()?.key ?? 'quran.com'}`;
 
 /** Whether word meanings are in the chosen language (Quran.com has no French, German or Arabic glosses). */
 export const wordMeaningsTranslated = (): boolean => CONTENT[language].words === language;
@@ -83,6 +115,8 @@ export interface QVerse {
   juz: number;
   page: number;
   words: QWord[];
+  /** Footnotes of a QuranEnc translation, shown under it */
+  translationNotes?: string;
 }
 
 export interface QSearchResult {
@@ -460,7 +494,7 @@ const toVerse = (v: ApiVerse, morph: SurahMorphology): QVerse => {
 };
 
 export const fetchVerse = (key: string): Promise<QVerse> =>
-  cached(`verse:${language}:${key}`, async () => {
+  cached(`verse:${translationCacheKey()}:${key}`, async () => {
     const surah = Number(key.split(':')[0]);
     const [data, morph, tafsir] = await Promise.all([
       getJson<{ verse: ApiVerse }>(`${API}/verses/by_key/${key}?${verseQuery()}`),
@@ -468,7 +502,8 @@ export const fetchVerse = (key: string): Promise<QVerse> =>
       tafsirFor(`by_ayah/${key}`)
     ]);
     const verse = toVerse(data.verse, morph);
-    return tafsir.has(key) ? { ...verse, translation: tafsir.get(key)! } : verse;
+    const [chosen] = await withChosenTranslation([verse]);
+    return tafsir.has(key) ? { ...chosen, translation: tafsir.get(key)! } : chosen;
   });
 
 /** Word timings for the verse's default recitation (verseAudioUrl), if Quran.com has usable ones. */
@@ -495,7 +530,7 @@ export interface ChapterPage {
 }
 
 export const fetchChapterPage = (surah: number, page = 1, perPage = 20): Promise<ChapterPage> =>
-  cached(`chapter:${language}:${surah}:${page}:${perPage}`, async () => {
+  cached(`chapter:${translationCacheKey()}:${surah}:${page}:${perPage}`, async () => {
     const [data, morph, tafsir] = await Promise.all([
       getJson<{ verses: ApiVerse[]; pagination: { next_page: number | null; total_records: number } }>(
         `${API}/verses/by_chapter/${surah}?${verseQuery()}&per_page=${perPage}&page=${page}`
@@ -503,11 +538,9 @@ export const fetchChapterPage = (surah: number, page = 1, perPage = 20): Promise
       getSurahMorphology(surah),
       tafsirFor(`by_chapter/${surah}?per_page=${perPage}&page=${page}`)
     ]);
+    const verses = await withChosenTranslation(data.verses.map((v) => toVerse(v, morph)));
     return {
-      verses: data.verses.map((v) => {
-        const verse = toVerse(v, morph);
-        return tafsir.has(verse.key) ? { ...verse, translation: tafsir.get(verse.key)! } : verse;
-      }),
+      verses: verses.map((verse) => (tafsir.has(verse.key) ? { ...verse, translation: tafsir.get(verse.key)! } : verse)),
       nextPage: data.pagination.next_page,
       totalVerses: data.pagination.total_records
     };

@@ -5,6 +5,7 @@ import { StorageService, getTodayDateString, isDueForReview } from './services/s
 import { searchQuranWords } from './services/quranApi';
 import { setContentLanguage } from './services/quranCom';
 import { setUiLanguage, t } from './i18n/strings';
+import { useTranslationChoice } from './services/translations';
 import { Header, ActiveTab } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { Hero } from './components/Hero';
@@ -32,6 +33,7 @@ const PracticeQuiz = named(() => import('./components/PracticeQuiz'), 'PracticeQ
 const WordComparisonModal = named(() => import('./components/WordComparisonModal'), 'WordComparisonModal');
 const SavedListsManager = named(() => import('./components/SavedListsManager'), 'SavedListsManager');
 const SavedVerses = named(() => import('./components/SavedVerses'), 'SavedVerses');
+const OfflineDownloads = named(() => import('./components/OfflineDownloads'), 'OfflineDownloads');
 const ProgressDashboard = named(() => import('./components/ProgressDashboard'), 'ProgressDashboard');
 const WordByWordVerseViewer = named(() => import('./components/WordByWordVerseViewer'), 'WordByWordVerseViewer');
 const SyntacticTreebank = named(() => import('./components/SyntacticTreebank'), 'SyntacticTreebank');
@@ -104,6 +106,7 @@ export function App() {
   // Verse translations and word meanings load in the chosen language (set before any tab fetches)
   setContentLanguage(settings.language);
   setUiLanguage(settings.language);
+  const translationChoice = useTranslationChoice(settings.language);
   useEffect(() => {
     document.documentElement.lang = settings.language;
   }, [settings.language]);
@@ -346,7 +349,7 @@ export function App() {
                 {t('offline')}
               </p>
             )}
-            <div key={`${activeTab}:${settings.language}`} className="animate-fadeIn">
+            <div key={`${activeTab}:${settings.language}:${translationChoice?.key ?? ''}`} className="animate-fadeIn">
               {/* Keyed by tab with its parent, so switching tabs clears an error; and by language, so a tab
                   reloads its translations when the language changes */}
               <ErrorBoundary>
@@ -519,6 +522,13 @@ export function App() {
                   {activeTab === 'study-lists' && (
                     <div className="max-w-5xl mx-auto space-y-6">
                       <SavedVerses onOpenSurah={openSurah} onOpenVerse={openVerse} />
+                      <OfflineDownloads
+                        onOpen={(id: string) => {
+                          const [kind, n] = id.split(':');
+                          if (kind === 'juz') openJuz(Number(n));
+                          else openSurah(Number(n));
+                        }}
+                      />
                       <SavedListsManager
                         studyLists={studyLists}
                         savedWordIds={savedWordIds}

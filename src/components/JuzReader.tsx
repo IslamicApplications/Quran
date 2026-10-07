@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import { ArrowLeft, ArrowRight, Play, Pause, Highlighter, Languages, Type, ScrollText } from 'lucide-react';
 import { SURAH_LIST } from '../data/surahList';
-import { playAudio, englishVerseAudioUrl, fetchVerse, QWord } from '../services/quranCom';
+import { playAudio, translationAudio, fetchVerse, QWord } from '../services/quranCom';
 import { reciterAudioUrl, reciterName, reciterStore, useReciter } from '../services/reciters';
 import { fetchJuz, JUZ_RANGES, TRANSLATIONS, TranslationId } from '../services/ummahApi';
 import { AppSettings } from '../types';
@@ -11,6 +11,8 @@ import { LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
 import { ARABIC_SIZES, AudioMode, AyahWords, BISMILLAH, Segmented, ToggleChip, WordSheet } from './ReaderParts';
 import { ReciterSelect } from './ReciterSelect';
 import { TafsirPanel } from './TafsirPanel';
+import { DownloadButton } from './DownloadButton';
+import { downloadJuz } from '../services/offline';
 import { VerseBookmarkButton, VerseNote } from './VerseBookmark';
 
 const LAST_JUZ_KEY = 'ayah-words-last-juz';
@@ -167,7 +169,7 @@ export const JuzView: React.FC<{
       const key = verses[index].key;
       // Read at play time, so a reciter chosen mid-juz takes over from the next verse
       const reciter = reciterStore.get();
-      const audio = playAudio(part === 'arabic' ? reciterAudioUrl(key, reciter) : englishVerseAudioUrl(key));
+      const audio = playAudio(part === 'arabic' ? reciterAudioUrl(key, reciter) : translationAudio(key).url);
       audioRef.current = audio;
       if (part === 'arabic') followRecitation(audio, key, reciter, verses[index].words.map((w) => w.arabic));
       setPlaying({ index, part });
@@ -237,6 +239,12 @@ export const JuzView: React.FC<{
           </div>
         )}
       </section>
+
+      <DownloadButton
+        id={`juz:${juz}`}
+        download={(onProgress, signal) => downloadJuz(juz, onProgress, signal)}
+        className="justify-center"
+      />
 
       {/* Reading controls */}
       <div className="glass sticky top-16 z-20 -mx-1 px-1 py-2 flex flex-wrap items-center gap-2 rounded-2xl">

@@ -14,8 +14,9 @@ const AUDIO = 'audio-v1';
 const BASE = new URL('./', self.location).pathname; // "/Quran/" on GitHub Pages
 
 const AUDIO_HOSTS = ['verses.quran.com', 'mirrors.quranicaudio.com', 'the-quran-project.github.io', 'everyayah.com', 'audio.qurancdn.com'];
-const DATA_HOSTS = ['api.quran.com', 'quranapi.pages.dev', 'ummahapi.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
-const LIMITS = { [SHELL]: 150, [DATA]: 3000, [AUDIO]: 600 };
+const DATA_HOSTS = ['api.quran.com', 'quranapi.pages.dev', 'ummahapi.com', 'quranenc.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
+// Room for the whole Quran's recordings (6,236 verses) and its text, for surahs and juz saved for offline use
+const LIMITS = { [SHELL]: 150, [DATA]: 12000, [AUDIO]: 7000 };
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -38,8 +39,11 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-/** Drops the oldest entries beyond the cache's limit. */
+/** Drops the oldest entries beyond the cache's limit; checked every 50 saves, as listing a large cache is slow. */
+const saves = {};
 const trim = async (name) => {
+  saves[name] = (saves[name] || 0) + 1;
+  if (saves[name] % 50 !== 1) return;
   const cache = await caches.open(name);
   const keys = await cache.keys();
   const extra = keys.length - LIMITS[name];

@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Layers, ChevronLeft, ChevronRight, Sparkles, BookMarked, ChevronDown, ScrollText } from 'lucide-react';
 import { VERSE_TREEBANKS } from '../data/corpusData';
 import { SURAH_LIST } from '../data/surahList';
-import { fetchVerse, getRootIndex, formatRoot, describeTag, translationSource, QWord } from '../services/quranCom';
+import { fetchVerse, getRootIndex, formatRoot, describeTag, translationSource, contentLanguage, QWord } from '../services/quranCom';
+import { TranslationSelect } from './TranslationSelect';
 import { VerseAudioBar } from './VerseAudioBar';
 import { TagBadge, WordAudioButton, LoadingBlock, ErrorBlock, useAsync, RecitedVerseText } from './QuranWordBits';
 import { useRecitedWord } from '../hooks/useRecitedWord';
@@ -152,8 +153,14 @@ export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
                 <span dir="auto">“{verse.translation}”</span>
                 <span className="not-italic text-emerald-400 text-xs ml-2">— {translationSource().name}</span>
               </p>
+              {verse.translationNotes && (
+                <p dir="auto" className="text-xs text-emerald-200/80 whitespace-pre-line">{verse.translationNotes}</p>
+              )}
             </div>
 
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <TranslationSelect language={contentLanguage()} />
+            </div>
             <VerseAudioBar verseKey={verse.key} />
 
             {onOpenSurah && (

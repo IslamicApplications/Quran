@@ -11,7 +11,10 @@ import {
   Languages,
   ChevronDown,
   ArrowRight,
-  ScrollText
+  ScrollText,
+  Layers,
+  Eye,
+  X as XIcon
 } from 'lucide-react';
 import { SURAH_LIST } from '../data/surahList';
 import {
@@ -30,9 +33,12 @@ import { followRecitation } from '../hooks/useRecitedWord';
 import { LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
 import { ARABIC_SIZES, AudioMode, AyahWords, BISMILLAH, Segmented, ToggleChip, WordSheet } from './ReaderParts';
 import { ReciterSelect } from './ReciterSelect';
-import { reciterAudioUrl, reciterName, reciterStore, hasWordTimings, useReciter } from '../services/reciters';
+import { reciterAudioUrl, reciterName, reciterStore, useReciter } from '../services/reciters';
 import { JuzList, JuzView, juzRangeLabel, readLastJuz } from './JuzReader';
 import { TafsirPanel } from './TafsirPanel';
+import { MemorizePanel, UnderstandPanel, defaultMemorize, type MemorizeSettings, type PracticeMode } from './PracticeControls';
+import { VerseBookmarkButton, VerseNote } from './VerseBookmark';
+import { understoodVersesStore, useUnderstoodVerses } from '../hooks/useVerseMarks';
 
 interface SurahReaderProps {
   surah?: number;
@@ -42,6 +48,8 @@ interface SurahReaderProps {
   settings: AppSettings;
   onOpenVerse?: (verseKey: string) => void;
   onOpenRoot?: (root: string) => void;
+  /** Opens the flashcard deck of a surah's words */
+  onStudyWords?: (surah: number) => void;
 }
 
 const LAST_SURAH_KEY = 'ayah-words-last-surah';
@@ -263,7 +271,7 @@ const SurahIndex: React.FC<{
 
 const SurahView: React.FC<
   SurahReaderProps & { surah: number; vocab: SurahVocab; known: ReadonlySet<string> }
-> = ({ surah, vocab, known, onSelectSurah, settings, onOpenVerse, onOpenRoot }) => {
+> = ({ surah, vocab, known, onSelectSurah, settings, onOpenVerse, onOpenRoot, onStudyWords }) => {
   const info = SURAH_LIST[surah - 1];
   const [verses, setVerses] = useState<QVerse[]>([]);
   const [nextPage, setNextPage] = useState<number | null>(1);
@@ -273,7 +281,17 @@ const SurahView: React.FC<
   const [highlight, setHighlight] = useState(true);
   const [showTranslation, setShowTranslation] = useState(true);
   const [audioMode, setAudioMode] = useState<AudioMode>('arabic');
-  const [playing, setPlaying] = useState<{ key: string; part: 'arabic' | 'english' } | null>(null);
+  const [playing, setPlaying] = useState<{ key: string; part: 'arabic' | 'english'; rep: number } | null>(null);
+  const [practice, setPractice] = useState<PracticeMode>('read');
+  const [memorize, setMemorize] = useState<MemorizeSettings>(() => defaultMemorize(info.totalAyahs));
+  // Read when a verse ends, so a setting changed mid-session applies from the next verse
+  const memorizeRef = useRef({ practice, memorize });
+  memorizeRef.current = { practice, memorize };
+  const gapTimer = useRef<number | undefined>(undefined);
+  // Memorisation with hidden words: verses tapped to uncover; comprehension: translations revealed
+  const [uncovered, setUncovered] = useState<ReadonlySet<string>>(new Set());
+  const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
+  const understood = useUnderstoodVerses();
   const [selected, setSelected] = useState<QWord | null>(null);
   const [showToLearn, setShowToLearn] = useState(false);
   const [tafsirKey, setTafsirKey] = useState<string | null>(null);
@@ -315,6 +333,7 @@ const SurahView: React.FC<
 
   // ---- audio: one verse at a time, continuing through the surah
   const stopAudio = useCallback(() => {
+    window.clearTimeout(gapTimer.current);
     if (audioRef.current) {
       audioRef.current.onended = null;
       audioRef.current.onpause = null;
@@ -327,18 +346,29 @@ const SurahView: React.FC<
   useEffect(() => stopAudio, [stopAudio]);
 
   const playVerse = useCallback(
-    (ayah: number, part: 'arabic' | 'english') => {
+    (ayah: number, part: 'arabic' | 'english', rep = 1) => {
+      window.clearTimeout(gapTimer.current);
       const key = `${surah}:${ayah}`;
+      const { practice: mode, memorize: m } = memorizeRef.current;
+      const memorizing = mode === 'memorize';
       // Read at play time, so a reciter chosen mid-surah takes over from the next verse
       const reciter = reciterStore.get();
       const audio = playAudio(part === 'arabic' ? reciterAudioUrl(key, reciter) : englishVerseAudioUrl(key));
       audioRef.current = audio;
-      if (part === 'arabic' && hasWordTimings(reciter)) followRecitation(audio, key);
-      setPlaying({ key, part });
+      if (part === 'arabic') followRecitation(audio, key, reciter);
+      audio.playbackRate = memorizing ? m.speed : 1;
+      setPlaying({ key, part, rep });
       document.getElementById(`ayah-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       audio.onpause = () => audioRef.current === audio && !audio.ended && setPlaying(null);
       audio.onerror = () => audioRef.current === audio && setPlaying(null);
       audio.onended = () => {
+        if (memorizing) {
+          // Each verse m.repeats times, a pause between plays, then on through the chosen range
+          const next = rep < m.repeats ? { ayah, rep: rep + 1 } : ayah < m.to ? { ayah: ayah + 1, rep: 1 } : null;
+          if (!next) return setPlaying(null);
+          gapTimer.current = window.setTimeout(() => playVerse(next.ayah, 'arabic', next.rep), m.gapSec * 1000);
+          return;
+        }
         if (part === 'arabic' && audioMode === 'both') return playVerse(ayah, 'english');
         if (ayah < info.totalAyahs) playVerse(ayah + 1, audioMode === 'english' ? 'english' : 'arabic');
         else setPlaying(null);
@@ -356,8 +386,15 @@ const SurahView: React.FC<
 
   const toggleVerse = (ayah: number) => {
     if (playing?.key === `${surah}:${ayah}`) return stopAudio();
-    playVerse(ayah, audioMode === 'english' ? 'english' : 'arabic');
+    playVerse(ayah, audioMode === 'english' && practice !== 'memorize' ? 'english' : 'arabic');
   };
+
+  const changePractice = (mode: PracticeMode) => {
+    stopAudio();
+    setPractice(mode);
+  };
+  const tested = verses.filter((v) => v.key in understood);
+  const markUnderstood = (key: string, ok: boolean) => understoodVersesStore.set(key, ok);
 
   const pct = surahCoverage(vocab, known) * 100;
   const knownTokens = Math.round((pct / 100) * vocab.total);
@@ -432,6 +469,14 @@ const SurahView: React.FC<
                   <Check className="w-3.5 h-3.5 text-stone-300 dark:text-stone-600 group-hover:text-emerald-600" />
                 </button>
               ))}
+              {onStudyWords && (
+                <button
+                  onClick={() => onStudyWords(surah)}
+                  className="basis-full sm:basis-auto inline-flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-xl font-bold bg-emerald-800 hover:bg-emerald-900 text-white cursor-pointer"
+                >
+                  <Layers className="w-3.5 h-3.5" /> Study all {toLearn.length} in flashcards
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -441,9 +486,19 @@ const SurahView: React.FC<
       <div className="glass sticky top-16 z-20 -mx-1 px-1 py-2 flex flex-wrap items-center gap-2 rounded-2xl">
         <ToggleChip active={highlight} onClick={() => setHighlight(!highlight)} icon={Highlighter} label="Highlight unknown" />
         <ToggleChip active={showTranslation} onClick={() => setShowTranslation(!showTranslation)} icon={Languages} label="Translation" />
+        <Segmented
+          value={practice}
+          onChange={changePractice}
+          options={[
+            { id: 'read', label: 'Read' },
+            { id: 'memorize', label: 'Memorize' },
+            { id: 'understand', label: 'Understand' }
+          ]}
+        />
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {/* A verse playing in Arabic restarts in the new voice */}
-          <ReciterSelect onChange={() => playing?.part === 'arabic' && playVerse(Number(playing.key.split(':')[1]), 'arabic')} />
+          <ReciterSelect onChange={() => playing?.part === 'arabic' && playVerse(Number(playing.key.split(':')[1]), 'arabic', playing.rep)} />
+          {practice !== 'memorize' && (
           <Segmented
             value={audioMode}
             onChange={(m) => {
@@ -456,15 +511,50 @@ const SurahView: React.FC<
               { id: 'both', label: 'Both' }
             ]}
           />
+          )}
           <button
-            onClick={() => (playing ? stopAudio() : playVerse(1, audioMode === 'english' ? 'english' : 'arabic'))}
+            onClick={() =>
+              playing
+                ? stopAudio()
+                : practice === 'memorize'
+                ? playVerse(memorize.from, 'arabic')
+                : playVerse(1, audioMode === 'english' ? 'english' : 'arabic')
+            }
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold cursor-pointer"
           >
             {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-            {playing ? 'Stop' : 'Play surah'}
+            {playing
+              ? 'Stop'
+              : practice === 'memorize'
+              ? memorize.from === memorize.to
+                ? `Play verse ${memorize.from}`
+                : `Play verses ${memorize.from}–${memorize.to}`
+              : 'Play surah'}
           </button>
         </div>
       </div>
+
+      {practice === 'memorize' && (
+        <MemorizePanel
+          settings={memorize}
+          totalAyahs={info.totalAyahs}
+          onChange={(next) => {
+            setMemorize(next);
+            if (!next.hideText) setUncovered(new Set());
+          }}
+        />
+      )}
+      {practice === 'understand' && (
+        <UnderstandPanel
+          understood={tested.filter((v) => understood[v.key]).length}
+          tested={tested.length}
+          total={info.totalAyahs}
+          onReset={() => {
+            tested.forEach((v) => understoodVersesStore.remove(v.key));
+            setRevealed(new Set());
+          }}
+        />
+      )}
 
       {/* Text */}
       <div className="card p-4 sm:p-8">
@@ -488,6 +578,11 @@ const SurahView: React.FC<
                     <span className="w-8 h-8 rounded-full ring-1 ring-emerald-200 dark:ring-emerald-800 bg-emerald-50 dark:bg-emerald-950/25 text-[11px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center justify-center tabular-nums">
                       {v.ayah}
                     </span>
+                    {isPlaying && practice === 'memorize' && memorize.repeats > 1 && (
+                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 tabular-nums" title="Repeat">
+                        {playing.rep}/{memorize.repeats}
+                      </span>
+                    )}
                     <button
                       onClick={() => toggleVerse(v.ayah)}
                       aria-label={isPlaying ? `Stop ayah ${v.ayah}` : `Play ayah ${v.ayah}`}
@@ -508,6 +603,7 @@ const SurahView: React.FC<
                     >
                       <ScrollText className="w-3.5 h-3.5" />
                     </button>
+                    <VerseBookmarkButton verseKey={v.key} />
                   </div>
 
                   <div className="flex-1 min-w-0 space-y-3">
@@ -518,8 +614,53 @@ const SurahView: React.FC<
                       highlightUnknown={highlight}
                       selectedLocation={selected?.location}
                       onSelect={setSelected}
+                      conceal={practice === 'memorize' && memorize.hideText && !uncovered.has(v.key)}
+                      onReveal={() => setUncovered((prev) => new Set(prev).add(v.key))}
                     />
-                    {showTranslation && (
+                    {practice === 'understand' ? (
+                      revealed.has(v.key) ? (
+                        <div className="space-y-2">
+                          <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">{v.translation}</p>
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="text-stone-500 dark:text-stone-400">Did you understand it?</span>
+                            <button
+                              onClick={() => markUnderstood(v.key, true)}
+                              aria-pressed={understood[v.key] === true}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-semibold cursor-pointer ring-1 ${
+                                understood[v.key] === true
+                                  ? 'bg-emerald-700 text-white ring-emerald-700'
+                                  : 'bg-white dark:bg-stone-900 ring-stone-200 dark:ring-stone-700 text-stone-700 dark:text-stone-300 hover:ring-emerald-400'
+                              }`}
+                            >
+                              <Check className="w-3.5 h-3.5" /> Understood
+                            </button>
+                            <button
+                              onClick={() => markUnderstood(v.key, false)}
+                              aria-pressed={understood[v.key] === false}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-semibold cursor-pointer ring-1 ${
+                                understood[v.key] === false
+                                  ? 'bg-amber-600 text-white ring-amber-600'
+                                  : 'bg-white dark:bg-stone-900 ring-stone-200 dark:ring-stone-700 text-stone-700 dark:text-stone-300 hover:ring-amber-400'
+                              }`}
+                            >
+                              <XIcon className="w-3.5 h-3.5" /> Not yet
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setRevealed((prev) => new Set(prev).add(v.key))}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> Reveal the meaning
+                          {v.key in understood && (
+                            <span className={understood[v.key] ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}>
+                              · {understood[v.key] ? 'understood before' : 'not yet before'}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    ) : showTranslation && (
                       <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
                         {playing?.key === v.key && playing.part === 'english' && (
                           <span className="inline-block mr-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
@@ -529,6 +670,7 @@ const SurahView: React.FC<
                         {v.translation}
                       </p>
                     )}
+                    <VerseNote verseKey={v.key} />
                     {tafsirKey === v.key && <TafsirPanel verseKey={v.key} className="animate-fadeIn" />}
                   </div>
                 </div>

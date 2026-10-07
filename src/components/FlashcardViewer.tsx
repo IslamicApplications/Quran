@@ -8,6 +8,8 @@ import { isDueForReview, calculateNextSRSReview } from '../services/storage';
 import { getCoverageList, fetchWordAt, formatRoot, CoverageWord } from '../services/quranCom';
 import { SURAH_LIST } from '../data/surahList';
 import { isAnyModalOpen } from '../hooks/useModalBehavior';
+import { useKnownLemmas } from '../hooks/useKnownLemmas';
+import { loadSurahWords } from '../services/surahWords';
 
 const RATINGS = [
   { confidence: 1, label: 'Forgot', style: 'bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-900 dark:text-rose-200 border-rose-200 dark:border-rose-800' },
@@ -21,6 +23,8 @@ const daysLabel = (days: number) => (days === 1 ? '1 day' : `${days} days`);
 
 /** Deck ids for the 85% Course stages: "course-0" is Stage 1. */
 const COURSE_DECK = /^course-(\d)$/;
+/** Deck ids for one surah's words: "surah-36" is Ya-Sin. */
+const SURAH_DECK = /^surah-(\d{1,3})$/;
 
 /** A detailed lesson or one of the 85% Course words, rated on the same spaced repetition schedule. */
 type Card = { kind: 'lesson'; id: string; word: QuranWord } | { kind: 'course'; id: string; word: CoverageWord };
@@ -207,6 +211,11 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
   const course = useAsync(getCoverageList, []);
   const stages = useMemo(() => (course.data ? buildStages(course.data.words, course.data.totalWords) : []), [course.data]);
   const courseStage = COURSE_DECK.exec(filterMode);
+  const surahNo = Number(SURAH_DECK.exec(filterMode)?.[1]) || undefined;
+  const surahDeck = useAsync(() => (surahNo ? loadSurahWords(surahNo) : Promise.resolve(undefined)), [surahNo]);
+  // While another surah loads, its predecessor's words would fill this deck
+  const surahWords = surahNo && surahDeck.data?.surah === surahNo ? surahDeck.data.words : undefined;
+  const known = useKnownLemmas();
 
   /** A course stage deck holds its due words first, then its unseen words; words scheduled for later wait. */
   const stageCards = (stageWords: CoverageWord[]) => {
@@ -226,6 +235,8 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
 
   const cards = useMemo<Card[]>(() => {
     if (courseStage) return stageCards(stages[Number(courseStage[1])]?.words ?? []);
+    // A surah's words still to learn: those not marked known, due ones first, then unseen ones
+    if (surahNo) return stageCards((surahWords ?? []).filter((w) => !known.has(w.lemma)));
     if (filterMode === 'due')
       return [
         ...words.filter((w) => isDueForReview(progressMap[w.id])).map(lessonCard),
@@ -234,7 +245,7 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
     const list = studyLists.find((l) => l.id === filterMode);
     return (list ? words.filter((w) => list.wordIds.includes(w.id)) : words).map(lessonCard);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterMode, words, studyLists, stages]);
+  }, [filterMode, words, studyLists, stages, surahWords]);
 
   const advanceTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(advanceTimer.current), []);
@@ -342,6 +353,14 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
               </option>
             ))}
           </optgroup>
+          <optgroup label="Words of a surah">
+            {SURAH_LIST.map((s) => (
+              <option key={s.number} value={`surah-${s.number}`}>
+                {s.number}. {s.nameTransliteration}
+                {surahNo === s.number && surahWords ? ` (${cards.length} to study)` : ''}
+              </option>
+            ))}
+          </optgroup>
           <optgroup label="Detailed lessons">
             <option value="all">All Lesson Words ({words.length})</option>
             {studyLists.map((list) => (
@@ -360,6 +379,21 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
   const waitingForCourse = course.data
     ? filterMode === NEXT_COURSE_DECK && !!nextStage
     : !!courseStage || filterMode === NEXT_COURSE_DECK || (filterMode === 'due' && !course.error);
+  const waitingForSurah = !!surahNo && !surahWords;
+  if (waitingForSurah) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6">
+        {deckPicker}
+        <div className="card">
+          {surahDeck.error && !surahDeck.loading ? (
+            <ErrorBlock message="Could not load this surah's words." onRetry={surahDeck.retry} />
+          ) : (
+            <LoadingBlock label="Loading the surah's words…" />
+          )}
+        </div>
+      </div>
+    );
+  }
   if (waitingForCourse || cards.length === 0) {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
@@ -383,6 +417,8 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
                 ? 'No flashcards are due for spaced repetition right now. Great job keeping up with your studies!'
                 : courseStage
                 ? 'Every word in this stage is scheduled for a later review. Its cards come back here when they are due.'
+                : surahNo
+                ? `You know every word of Surah ${SURAH_LIST[surahNo - 1]?.nameTransliteration}, or the rest are scheduled for a later review.`
                 : 'No words match your selected filter.'}
             </p>
             {nextStage && filterMode !== `course-${nextStage.index}` && (

@@ -340,8 +340,20 @@ export interface WordTiming {
  * words, so its positions are shifted by one but its count matches: take those in order. 10:1 and 37:130
  * point past the last word; they get no timings.
  */
-const toTimings = (segments: number[][] | undefined, wordCount: number): WordTiming[] | undefined => {
-  if (!segments?.length) return undefined;
+const toTimings = (raw: number[][] | undefined, wordCount: number): WordTiming[] | undefined => {
+  if (!raw?.length) return undefined;
+  // An entry can cover several words (Hani ar-Rifai's 112:1 opens [0, 2, 0, 1890]: words 1–2 together);
+  // share its time evenly so each word still lights up
+  const segments = raw.flatMap(([from, to, start, end]) =>
+    from >= 0 && to - from > 1
+      ? Array.from({ length: to - from }, (_, k) => [
+          from + k,
+          from + k + 1,
+          Math.round(start + ((end - start) * k) / (to - from)),
+          Math.round(start + ((end - start) * (k + 1)) / (to - from))
+        ])
+      : [[from, to, start, end]]
+  );
   const positions = segments.map((seg) => seg[1]);
   const inOrder = positions.every((p, i) => p >= 1 && p <= wordCount && (i === 0 || p > positions[i - 1]));
   if (!inOrder && segments.length !== wordCount) return undefined;
@@ -402,6 +414,17 @@ export const getVerseTimings = async (key: string): Promise<WordTiming[] | undef
   if (!timingsByKey.has(key)) await fetchVerse(key);
   return timingsByKey.get(key);
 };
+
+/** Word timings for another of Quran.com's recitations (its own recording, e.g. Abu Bakr al-Shatri). */
+export const getRecitationTimings = (key: string, recitation: number): Promise<WordTiming[] | undefined> =>
+  recitation === DEFAULT_RECITATION_ID
+    ? getVerseTimings(key)
+    : cached(`timings:${recitation}:${key}`, async () => {
+        const { verse } = await getJson<{ verse: ApiVerse }>(
+          `${API}/verses/by_key/${key}?words=true&word_fields=text_uthmani&audio=${recitation}`
+        );
+        return toTimings(verse.audio?.segments, verse.words.filter((w) => w.char_type_name === 'word').length);
+      });
 
 export interface ChapterPage {
   verses: QVerse[];

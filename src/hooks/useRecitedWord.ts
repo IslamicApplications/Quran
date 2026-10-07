@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import { getVerseTimings, type WordTiming } from '../services/quranCom';
+import { fetchVerse, type WordTiming } from '../services/quranCom';
+import { estimateTimings, reciterTimings, type ReciterId } from '../services/reciters';
 
 /** The word being recited right now, shared by every view of the verse. */
 let current: { key: string; position: number } | null = null;
@@ -20,10 +21,17 @@ const wordAt = (timings: WordTiming[], ms: number): number | null => {
 };
 
 /**
- * Follows `audio`, the verse's default recitation (verseAudioUrl), and publishes the word being recited.
- * Stops when the clip pauses, ends or fails, including when another clip takes over.
+ * Follows `audio`, the verse recited by `reciter`, and publishes the word being recited. A recording with its
+ * own word timings is followed exactly; otherwise the timings are estimated from the verse's `words` (fetched
+ * when not given) once the clip's length is known. Stops when the clip pauses, ends or fails, including when
+ * another clip takes over.
  */
-export const followRecitation = (audio: HTMLAudioElement, verseKey: string): void => {
+export const followRecitation = (
+  audio: HTMLAudioElement,
+  verseKey: string,
+  reciter: ReciterId,
+  words?: string[]
+): void => {
   owner = audio;
   set(null);
   let frame = 0;
@@ -39,7 +47,15 @@ export const followRecitation = (audio: HTMLAudioElement, verseKey: string): voi
     if (owner === audio) set(null);
   };
 
-  getVerseTimings(verseKey)
+  const estimate = async () => {
+    const arabic = words?.length ? words : (await fetchVerse(verseKey)).words.map((w) => w.arabic);
+    const ready = () => Number.isFinite(audio.duration) && audio.duration > 0;
+    if (!ready()) await new Promise((resolve) => audio.addEventListener('loadedmetadata', resolve, { once: true }));
+    return ready() ? estimateTimings(arabic, audio.duration * 1000) : undefined;
+  };
+
+  reciterTimings(verseKey, reciter)
+    .then((t) => t ?? estimate())
     .then((t) => (timings = t))
     .catch(() => undefined); // no timings: the audio plays without highlighting
 
@@ -58,5 +74,8 @@ const subscribe = (listener: () => void) => {
 };
 
 /** Position of the word being recited in `verseKey`, or null when that verse isn't playing. */
+export const recitedWord = (verseKey: string | undefined): number | null =>
+  current && current.key === verseKey && current.position ? current.position : null;
+
 export const useRecitedWord = (verseKey: string | undefined): number | null =>
-  useSyncExternalStore(subscribe, () => (current && current.key === verseKey && current.position ? current.position : null));
+  useSyncExternalStore(subscribe, () => recitedWord(verseKey));

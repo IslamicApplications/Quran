@@ -1,16 +1,8 @@
 import React, { useState } from 'react';
 import {
   Flame,
-  BookOpen,
-  Sparkles,
-  Layers,
-  GraduationCap,
-  Info,
-  ChevronRight,
   Filter,
-  CheckCircle2,
-  ArrowRight,
-  ExternalLink
+  ArrowRight
 } from 'lucide-react';
 import {
   HIGH_FREQUENCY_100_WORDS,
@@ -36,7 +28,6 @@ interface Top100VocabularyExplorerProps {
   onSelectWord?: (wordId: string) => void;
   onOpenRoot?: (root: string) => void;
   onOpenVerse?: (verseKey: string) => void;
-  onOpenPracticeWithCategory?: (categoryId: number) => void;
 }
 
 const linkClass =
@@ -45,8 +36,7 @@ const linkClass =
 export const Top100VocabularyExplorer: React.FC<Top100VocabularyExplorerProps> = ({
   onSelectWord,
   onOpenRoot,
-  onOpenVerse,
-  onOpenPracticeWithCategory
+  onOpenVerse
 }) => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(0); // 0 = all
   const [searchFilter, setSearchFilter] = useState('');

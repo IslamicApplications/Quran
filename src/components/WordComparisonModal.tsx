@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Compass, BookOpen, ExternalLink, X, Info, Sparkles } from 'lucide-react';
+import { Compass, BookOpen, X } from 'lucide-react';
 import { CROSS_VERSE_COMPARISONS } from '../data/crossVerseComparisons';
 import { useModalBehavior } from '../hooks/useModalBehavior';
 

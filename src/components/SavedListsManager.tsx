@@ -1,14 +1,10 @@
 import React, { useState } from 'react';
 import {
   Bookmark,
-  Plus,
   Trash2,
   Layers,
-  GraduationCap,
-  BookOpen,
   FolderPlus,
-  ChevronRight,
-  Sparkles
+  ChevronRight
 } from 'lucide-react';
 import { StudyList, QuranWord, DifficultyLevel, Language } from '../types';
 import { StorageService } from '../services/storage';

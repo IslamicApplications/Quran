@@ -8,11 +8,9 @@ import {
   EyeOff,
   CheckCircle2,
   XCircle,
-  Share2,
   Sparkles,
   Info,
   Compass,
-  Volume2,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
@@ -38,7 +36,6 @@ interface LessonCardProps {
   onToggleSave: (wordId: string) => void;
   onRateSRS?: (wordId: string, confidence: number, wasCorrect: boolean) => void;
   onOpenComparison?: (wordId: string) => void;
-  onAddToList?: (wordId: string) => void;
 }
 
 export const LessonCard: React.FC<LessonCardProps> = ({
@@ -50,8 +47,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
   progress,
   onToggleSave,
   onRateSRS,
-  onOpenComparison,
-  onAddToList
+  onOpenComparison
 }) => {
   const [showAnswer, setShowAnswer] = useState(false);
   const [selectedAnswerIndex, setSelectedAnswerIndex] = useState<number | null>(null);

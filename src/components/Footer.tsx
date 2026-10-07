@@ -29,6 +29,11 @@ export const Footer: React.FC = () => {
 
         <div className="pt-6 border-t border-stone-200/80 dark:border-stone-700/80 text-xs text-stone-400 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>&copy; {new Date().getFullYear()} Ayah Words · Built for sincere learners of Quranic Arabic.</span>
+          {/* The corpus data is GPL-3.0, which requires this credit */}
+          <span className="text-center sm:text-right">
+            Word data: Quranic Arabic Corpus (GPL-3.0) · Text &amp; audio: Quran.com, EveryAyah · Tafsir &amp;
+            reciters: Quran API
+          </span>
         </div>
       </div>
     </footer>

@@ -33,7 +33,7 @@ export const RootConcordanceViewer: React.FC<RootConcordanceViewerProps> = ({ in
   const matches = useMemo(() => {
     const raw = query.trim();
     if (!raw) return sortedRoots;
-    const q = normalizeArabic(raw).replace(/[\s\-]/g, '');
+    const q = normalizeArabic(raw).replace(/[\s-]/g, '');
     const latin = raw.toLowerCase();
     return sortedRoots.filter(([root, entry]) => {
       if (normalizeArabic(root).includes(q)) return true;

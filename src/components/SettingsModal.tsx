@@ -3,19 +3,15 @@ import {
   X,
   Settings,
   Type,
-  Eye,
   Download,
   Upload,
   Trash2,
   ShieldCheck,
-  CheckCircle2,
-  AlertTriangle,
-  Info,
   Sun,
   Moon,
   Monitor
 } from 'lucide-react';
-import { AppSettings, DifficultyLevel, Language } from '../types';
+import { AppSettings } from '../types';
 import { StorageService, getTodayDateString } from '../services/storage';
 import { useModalBehavior } from '../hooks/useModalBehavior';
 import { useTheme, ThemePreference } from '../hooks/useTheme';

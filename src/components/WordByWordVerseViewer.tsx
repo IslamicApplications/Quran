@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Layers, ChevronLeft, ChevronRight, Sparkles, BookMarked, ChevronDown } from 'lucide-react';
+import { Layers, ChevronLeft, ChevronRight, Sparkles, BookMarked, ChevronDown, ScrollText } from 'lucide-react';
 import { VERSE_TREEBANKS } from '../data/corpusData';
 import { SURAH_LIST } from '../data/surahList';
 import { fetchVerse, getRootIndex, formatRoot, describeTag, QWord } from '../services/quranCom';
@@ -33,6 +33,8 @@ export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
 }) => {
   const [{ surah, ayah }, setPos] = useState(() => parseKey(verseKey));
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  // Commentary can run to 88 KB a verse: load it only once asked for, then keep it open while browsing
+  const [showTafsir, setShowTafsir] = useState(false);
   const key = `${surah}:${ayah}`;
   const surahInfo = SURAH_LIST[surah - 1];
 
@@ -197,7 +199,16 @@ export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
               </div>
             )}
 
-            <TafsirPanel verseKey={verse.key} />
+            {showTafsir ? (
+              <TafsirPanel verseKey={verse.key} />
+            ) : (
+              <button
+                onClick={() => setShowTafsir(true)}
+                className="w-full card p-4 flex items-center justify-center gap-2 text-sm font-semibold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/20 cursor-pointer"
+              >
+                <ScrollText className="w-4 h-4" /> Show tafsir of {verse.key}
+              </button>
+            )}
           </div>
         ) : null}
       </div>

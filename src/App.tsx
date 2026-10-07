@@ -14,6 +14,8 @@ import { WholeQuranSearch } from './components/WholeQuranSearch';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { NEXT_COURSE_DECK } from './components/courseWords';
 import { knownLemmasStore } from './hooks/useKnownLemmas';
+import { verseBookmarksStore, understoodVersesStore } from './hooks/useVerseMarks';
+import { useOnline } from './hooks/useOnline';
 import { BookOpen, Loader2 } from 'lucide-react';
 
 // Secondary tabs are code-split so the first paint only ships the vocabulary feed.
@@ -26,6 +28,7 @@ const FlashcardViewer = named(() => import('./components/FlashcardViewer'), 'Fla
 const PracticeQuiz = named(() => import('./components/PracticeQuiz'), 'PracticeQuiz');
 const WordComparisonModal = named(() => import('./components/WordComparisonModal'), 'WordComparisonModal');
 const SavedListsManager = named(() => import('./components/SavedListsManager'), 'SavedListsManager');
+const SavedVerses = named(() => import('./components/SavedVerses'), 'SavedVerses');
 const ProgressDashboard = named(() => import('./components/ProgressDashboard'), 'ProgressDashboard');
 const WordByWordVerseViewer = named(() => import('./components/WordByWordVerseViewer'), 'WordByWordVerseViewer');
 const SyntacticTreebank = named(() => import('./components/SyntacticTreebank'), 'SyntacticTreebank');
@@ -85,6 +88,7 @@ export function App() {
   const [settings, setSettings] = useState<AppSettings>(StorageService.getSettings());
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const online = useOnline();
   const [flashcardDeck, setFlashcardDeck] = useState<string>(NEXT_COURSE_DECK);
   const [wbwVerseKey, setWbwVerseKey] = useState<string>('1:2');
   const [rootDictRoot, setRootDictRoot] = useState<string | undefined>(undefined);
@@ -186,6 +190,8 @@ export function App() {
     setStudyLists(StorageService.getStudyLists());
     setStreak(StorageService.getStreak());
     knownLemmasStore.reload();
+    verseBookmarksStore.reload();
+    understoodVersesStore.reload();
   };
 
   const handleToggleSave = (wordId: string) => {
@@ -297,6 +303,11 @@ export function App() {
 
         <div className="flex-1 min-w-0 flex flex-col">
           <main className="flex-1 px-4 sm:px-6 lg:px-10 py-6 sm:py-8 w-full max-w-6xl mx-auto">
+            {!online && (
+              <p role="status" className="mb-4 text-xs sm:text-sm rounded-xl px-4 py-2.5 bg-amber-50 dark:bg-amber-950/25 ring-1 ring-amber-200 dark:ring-amber-900/60 text-amber-900 dark:text-amber-200">
+                You're offline. Surahs, tafsir and recitations you've opened before still work.
+              </p>
+            )}
             <div key={activeTab} className="animate-fadeIn">
               {/* Keyed by tab with its parent, so switching tabs clears an error */}
               <ErrorBoundary>
@@ -385,6 +396,7 @@ export function App() {
                           onThemeChange={setSelectedCategory}
                           onOpenVerse={openVerse}
                           onOpenSurah={openSurah}
+                          onStudyWords={(s: number) => openFlashcards(`surah-${s}`)}
                         />
                       )}
 
@@ -401,6 +413,7 @@ export function App() {
                       settings={settings}
                       onOpenVerse={openVerse}
                       onOpenRoot={openRoot}
+                      onStudyWords={(s: number) => openFlashcards(`surah-${s}`)}
                     />
                   )}
 
@@ -454,18 +467,21 @@ export function App() {
                   {activeTab === 'comparisons' && <WordComparisonModal />}
 
                   {activeTab === 'study-lists' && (
-                    <SavedListsManager
-                      studyLists={studyLists}
-                      savedWordIds={savedWordIds}
-                      allWords={ALL_VERIFIED_WORDS}
-                      level={settings.level}
-                      language={settings.language}
-                      onUpdateLists={reloadStorageData}
-                      onStartFlashcardsWithList={(listId: string) =>
-                        openFlashcards(listId === 'all-saved' ? 'all' : listId)
-                      }
-                      onSelectWord={handleSelectWordInDictionary}
-                    />
+                    <div className="max-w-5xl mx-auto space-y-6">
+                      <SavedVerses onOpenSurah={openSurah} onOpenVerse={openVerse} />
+                      <SavedListsManager
+                        studyLists={studyLists}
+                        savedWordIds={savedWordIds}
+                        allWords={ALL_VERIFIED_WORDS}
+                        level={settings.level}
+                        language={settings.language}
+                        onUpdateLists={reloadStorageData}
+                        onStartFlashcardsWithList={(listId: string) =>
+                          openFlashcards(listId === 'all-saved' ? 'all' : listId)
+                        }
+                        onSelectWord={handleSelectWordInDictionary}
+                      />
+                    </div>
                   )}
 
                   {activeTab === 'progress' && (

@@ -1,15 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BookOpenText } from 'lucide-react';
+import { BookOpenText, Layers } from 'lucide-react';
 import { SURAH_LIST } from '../data/surahList';
-import {
-  getSurahVocab,
-  getSurahMorphology,
-  getCoverageList,
-  parseMorph,
-  surahCoverage,
-  tagGroup,
-  CoverageWord
-} from '../services/quranCom';
+import { surahCoverage, tagGroup } from '../services/quranCom';
+import { loadSurahWords } from '../services/surahWords';
 import { themeOfWord } from '../data/wordThemes';
 import { useKnownLemmas, knownLemmasStore } from '../hooks/useKnownLemmas';
 import { LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
@@ -24,6 +17,8 @@ interface SurahVocabularyProps {
   onThemeChange?: (theme: string) => void;
   onOpenVerse?: (verseKey: string) => void;
   onOpenSurah?: (surah: number) => void;
+  /** Opens the flashcard deck of this surah's words */
+  onStudyWords?: (surah: number) => void;
 }
 
 type Show = 'all' | 'learn' | 'known';
@@ -31,54 +26,9 @@ type WordType = 'all' | 'noun' | 'verb' | 'particle';
 
 const PAGE_SIZE = 30;
 
-/**
- * Occurrences of each lemma across the whole Quran, counted the way the 85% Course counts them: course words
- * include attached prefixes (ب in بِٱللَّهِ), other words their occurrences as words of their own.
- * Built once, as it does not depend on the surah.
- */
-let appearancesMemo: Promise<Map<string, number>> | undefined;
-const quranAppearances = (): Promise<Map<string, number>> =>
-  (appearancesMemo ??= Promise.all([getSurahVocab(), getCoverageList()]).then(([vocab, course]) => {
-    const totals = new Map<string, number>();
-    for (const s of vocab) for (const [lemma, n] of s.lemmas) totals.set(lemma, (totals.get(lemma) || 0) + n);
-    for (const w of course.words) totals.set(w.lemma, w.appearances);
-    return totals;
-  }).catch((err) => {
-    appearancesMemo = undefined; // allow retry after a network failure
-    throw err;
-  }));
-
-const loadSurah = async (surah: number) => {
-  const [vocab, morph, appearances] = await Promise.all([getSurahVocab(), getSurahMorphology(surah), quranAppearances()]);
-  // Each lemma's first occurrence in the surah gives its root, word type and the verse its meaning comes from
-  const first = new Map<string, { sample: string; root?: string; tag?: string; verbForm?: string }>();
-  morph.forEach((ayah, a) =>
-    ayah.forEach((entry, w) => {
-      const m = parseMorph(entry);
-      if (m.lemma && !first.has(m.lemma)) first.set(m.lemma, { ...m, sample: `${surah}:${a + 1}:${w + 1}` });
-    })
-  );
-  const words = vocab[surah - 1].lemmas.flatMap(([lemma, n], i) => {
-    const f = first.get(lemma);
-    if (!f) return [];
-    const word: CoverageWord = {
-      rank: i + 1, // within the surah; the card shows the surah count in its place
-      lemma,
-      root: f.root,
-      tag: f.tag,
-      verbForm: f.verbForm,
-      count: n,
-      appearances: Math.max(appearances.get(lemma) || 0, n),
-      sample: f.sample
-    };
-    return [word];
-  });
-  return { surah, summary: vocab[surah - 1], words };
-};
-
 /** Every word of a surah, most frequent first, with its meaning, recitation and known status. */
-export const SurahVocabulary: React.FC<SurahVocabularyProps> = ({ surah, theme = 'all', onThemeChange, onOpenVerse, onOpenSurah }) => {
-  const { data: loaded, loading, error, retry } = useAsync(() => loadSurah(surah), [surah]);
+export const SurahVocabulary: React.FC<SurahVocabularyProps> = ({ surah, theme = 'all', onThemeChange, onOpenVerse, onOpenSurah, onStudyWords }) => {
+  const { data: loaded, loading, error, retry } = useAsync(() => loadSurahWords(surah), [surah]);
   // While another surah loads, the previous one's words would show under the new surah's name
   const data = loaded?.surah === surah ? loaded : undefined;
   const known = useKnownLemmas();
@@ -129,14 +79,24 @@ export const SurahVocabulary: React.FC<SurahVocabularyProps> = ({ surah, theme =
             <strong className="text-emerald-800 dark:text-emerald-300 tabular-nums">{pct}%</strong> of its text
           </p>
         </div>
-        {onOpenSurah && (
-          <button
-            onClick={() => onOpenSurah(surah)}
-            className="self-start sm:self-auto shrink-0 inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-semibold bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 cursor-pointer"
-          >
-            <BookOpenText className="w-3.5 h-3.5" /> Read the surah
-          </button>
-        )}
+        <div className="self-start sm:self-auto shrink-0 flex flex-wrap gap-2">
+          {onStudyWords && knownCount < data.words.length && (
+            <button
+              onClick={() => onStudyWords(surah)}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-bold bg-emerald-800 hover:bg-emerald-900 text-white cursor-pointer"
+            >
+              <Layers className="w-3.5 h-3.5" /> Study in flashcards
+            </button>
+          )}
+          {onOpenSurah && (
+            <button
+              onClick={() => onOpenSurah(surah)}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-semibold bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 cursor-pointer"
+            >
+              <BookOpenText className="w-3.5 h-3.5" /> Read the surah
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

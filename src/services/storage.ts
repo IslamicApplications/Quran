@@ -9,6 +9,31 @@ const STORAGE_KEYS = {
   STREAK: 'ayah_words_streak_v1',
   LAST_ACTIVE_DATE: 'ayah_words_last_active_date_v1',
   KNOWN_LEMMAS: 'ayah_words_known_lemmas_v1',
+  VERSE_BOOKMARKS: 'ayah_words_verse_bookmarks_v1',
+  UNDERSTOOD_VERSES: 'ayah_words_understood_verses_v1',
+};
+
+/** A saved verse ("2:255") with the learner's own note. */
+export interface VerseBookmark {
+  note: string;
+  savedAt: string;
+}
+
+const readJson = <T,>(key: string, fallback: T): T => {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? (JSON.parse(stored) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const writeJson = (key: string, value: unknown, what: string): void => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.error(`Failed to save ${what}`, e);
+  }
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -377,6 +402,16 @@ export const StorageService = {
     }
   },
 
+  // Saved verses with notes, keyed "surah:ayah"
+  getVerseBookmarks: (): Record<string, VerseBookmark> => readJson(STORAGE_KEYS.VERSE_BOOKMARKS, {}),
+  setVerseBookmarks: (bookmarks: Record<string, VerseBookmark>): void =>
+    writeJson(STORAGE_KEYS.VERSE_BOOKMARKS, bookmarks, 'saved verses'),
+
+  // Comprehension check: whether the learner understood each verse they tested themselves on
+  getUnderstoodVerses: (): Record<string, boolean> => readJson(STORAGE_KEYS.UNDERSTOOD_VERSES, {}),
+  setUnderstoodVerses: (marks: Record<string, boolean>): void =>
+    writeJson(STORAGE_KEYS.UNDERSTOOD_VERSES, marks, 'comprehension marks'),
+
   // Backup and Export
   exportAllUserDataJson: (): string => {
     const data = {
@@ -388,7 +423,9 @@ export const StorageService = {
       studyLists: StorageService.getStudyLists(),
       streak: StorageService.getStreak(),
       lastActiveDate: localStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_DATE),
-      knownLemmas: StorageService.getKnownLemmas()
+      knownLemmas: StorageService.getKnownLemmas(),
+      verseBookmarks: StorageService.getVerseBookmarks(),
+      understoodVerses: StorageService.getUnderstoodVerses()
     };
     return JSON.stringify(data, null, 2);
   },
@@ -404,6 +441,9 @@ export const StorageService = {
       if (typeof parsed.streak === 'number') localStorage.setItem(STORAGE_KEYS.STREAK, String(parsed.streak));
       if (typeof parsed.lastActiveDate === 'string') localStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_DATE, parsed.lastActiveDate);
       if (Array.isArray(parsed.knownLemmas)) localStorage.setItem(STORAGE_KEYS.KNOWN_LEMMAS, JSON.stringify(parsed.knownLemmas));
+      const isMap = (v: unknown) => !!v && typeof v === 'object' && !Array.isArray(v);
+      if (isMap(parsed.verseBookmarks)) localStorage.setItem(STORAGE_KEYS.VERSE_BOOKMARKS, JSON.stringify(parsed.verseBookmarks));
+      if (isMap(parsed.understoodVerses)) localStorage.setItem(STORAGE_KEYS.UNDERSTOOD_VERSES, JSON.stringify(parsed.understoodVerses));
       return true;
     } catch (e) {
       console.error('Failed to import user study data', e);

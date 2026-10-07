@@ -171,7 +171,9 @@ export const AyahWords = React.memo(function AyahWords({
   known,
   highlightUnknown,
   selectedLocation,
-  onSelect
+  onSelect,
+  conceal = false,
+  onReveal
 }: {
   verse: QVerse;
   className: string;
@@ -179,6 +181,9 @@ export const AyahWords = React.memo(function AyahWords({
   highlightUnknown: boolean;
   selectedLocation?: string;
   onSelect: (word: QWord | null) => void;
+  /** Memorisation: blur each word until it has been recited; a tap calls `onReveal` instead */
+  conceal?: boolean;
+  onReveal?: () => void;
 }) {
   const recited = useRecitedWord(verse.key);
   return (
@@ -186,13 +191,17 @@ export const AyahWords = React.memo(function AyahWords({
       {verse.words.map((w) => {
         const isKnown = !!w.lemma && known.has(w.lemma);
         const isSelected = selectedLocation === w.location;
+        const hidden = conceal && (recited === null || w.position > recited);
         return (
           <React.Fragment key={w.location}>
             <button
-              onClick={() => onSelect(isSelected ? null : w)}
+              onClick={() => (conceal ? onReveal?.() : onSelect(isSelected ? null : w))}
               aria-current={recited === w.position ? 'true' : undefined}
-              className={`rounded-md px-0.5 leading-[1.5] align-baseline transition-colors cursor-pointer ${
-                isSelected
+              aria-label={hidden ? 'Hidden word: tap to uncover the verse' : undefined}
+              className={`rounded-md px-0.5 leading-[1.5] align-baseline transition-[color,background-color,filter] cursor-pointer ${
+                hidden
+                  ? 'blur-[7px] select-none text-stone-500 dark:text-stone-400'
+                  : isSelected
                   ? 'bg-emerald-800 text-white'
                   : recited === w.position
                   ? 'bg-emerald-200 dark:bg-emerald-700/70 text-emerald-950 dark:text-white'

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { ArrowLeft, ArrowRight, Play, Pause, Highlighter, Languages, Type, ScrollText } from 'lucide-react';
 import { SURAH_LIST } from '../data/surahList';
 import { playAudio, englishVerseAudioUrl, fetchVerse, QWord } from '../services/quranCom';
-import { reciterAudioUrl, reciterName, reciterStore, hasWordTimings, useReciter } from '../services/reciters';
+import { reciterAudioUrl, reciterName, reciterStore, useReciter } from '../services/reciters';
 import { fetchJuz, JUZ_RANGES, TRANSLATIONS, TranslationId } from '../services/ummahApi';
 import { AppSettings } from '../types';
 import { followRecitation } from '../hooks/useRecitedWord';
@@ -11,6 +11,7 @@ import { LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
 import { ARABIC_SIZES, AudioMode, AyahWords, BISMILLAH, Segmented, ToggleChip, WordSheet } from './ReaderParts';
 import { ReciterSelect } from './ReciterSelect';
 import { TafsirPanel } from './TafsirPanel';
+import { VerseBookmarkButton, VerseNote } from './VerseBookmark';
 
 const LAST_JUZ_KEY = 'ayah-words-last-juz';
 const TRANSLATION_KEY = 'ayah-words-juz-translation';
@@ -158,7 +159,7 @@ export const JuzView: React.FC<{
       const reciter = reciterStore.get();
       const audio = playAudio(part === 'arabic' ? reciterAudioUrl(key, reciter) : englishVerseAudioUrl(key));
       audioRef.current = audio;
-      if (part === 'arabic' && hasWordTimings(reciter)) followRecitation(audio, key);
+      if (part === 'arabic') followRecitation(audio, key, reciter, verses[index].words.map((w) => w.arabic));
       setPlaying({ index, part });
       setShown((n) => Math.max(n, index + BATCH / 3));
       requestAnimationFrame(() =>
@@ -336,6 +337,7 @@ export const JuzView: React.FC<{
                         >
                           <ScrollText className="w-3.5 h-3.5" />
                         </button>
+                        <VerseBookmarkButton verseKey={v.key} />
                       </div>
 
                       <div className="flex-1 min-w-0 space-y-3">
@@ -370,6 +372,7 @@ export const JuzView: React.FC<{
                             {v.translations[translationId] || v.translation}
                           </p>
                         )}
+                        <VerseNote verseKey={v.key} />
                         {tafsirKey === v.key && <TafsirPanel verseKey={v.key} className="animate-fadeIn" />}
                       </div>
                     </div>

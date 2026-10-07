@@ -70,6 +70,8 @@ export interface QWord {
   lemma?: string;
   tag?: string; // corpus POS tag of the stem, e.g. "N", "PERF", "ACT_PCPL"
   verbForm?: string; // "1".."12"
+  /** The word marked with tajweed rules (<rule class=…>), for colouring */
+  tajweed?: string;
 }
 
 export interface QVerse {
@@ -349,6 +351,7 @@ interface ApiWord {
   position: number;
   char_type_name: string;
   text_uthmani: string;
+  text_uthmani_tajweed?: string;
   audio_url: string | null;
   location?: string;
   translation?: { text: string };
@@ -369,7 +372,7 @@ interface ApiVerse {
 
 const verseQuery = () => {
   const c = CONTENT[language];
-  return `words=true&word_fields=text_uthmani,location&fields=text_uthmani&translations=${c.translation ?? DEFAULT_TRANSLATION_ID}&language=${c.words}&audio=${DEFAULT_RECITATION_ID}`;
+  return `words=true&word_fields=text_uthmani,text_uthmani_tajweed,location&fields=text_uthmani&translations=${c.translation ?? DEFAULT_TRANSLATION_ID}&language=${c.words}&audio=${DEFAULT_RECITATION_ID}`;
 };
 
 /** Al-Muyassar's text for the verses of a Quran.com response, for Arabic readers. */
@@ -439,6 +442,7 @@ const toVerse = (v: ApiVerse, morph: SurahMorphology): QVerse => {
       translation: w.translation?.text || '',
       transliteration: w.transliteration?.text || '',
       audioUrl: w.audio_url ? wordAudioUrl(surah, ayah, w.position) : undefined,
+      tajweed: w.text_uthmani_tajweed || undefined,
       ...parseMorph(ayahMorph[w.position - 1])
     }));
   timingsByKey.set(v.verse_key, toTimings(v.audio?.segments, words.length));
@@ -555,3 +559,49 @@ export const playAudio = (url: string): HTMLAudioElement => {
   });
   return audio;
 };
+
+// ---------- Mushaf pages ----------
+
+export interface MushafWord {
+  location: string; // "surah:ayah:word"; ayah-end markers use "surah:ayah:end"
+  text: string;
+  line: number;
+  /** An ayah-end marker (۝ with the verse number) rather than a word */
+  end: boolean;
+  /** The word marked with tajweed rules, for colouring */
+  tajweed?: string;
+}
+
+export interface MushafPage {
+  page: number;
+  juz: number;
+  words: MushafWord[];
+  /** Surahs whose first verse is on this page, with the line that verse starts on */
+  surahStarts: { surah: number; line: number }[];
+}
+
+/** One page of the 604-page Madinah Mushaf, with each word's line, from Quran.com. */
+export const fetchMushafPage = (page: number): Promise<MushafPage> =>
+  cached(`mushaf-page:${page}`, async () => {
+    const data = await getJson<{
+      verses: { verse_key: string; juz_number: number; words: (ApiWord & { line_number: number })[] }[];
+    }>(`${API}/verses/by_page/${page}?words=true&word_fields=text_uthmani,text_uthmani_tajweed,line_number,location&per_page=50`);
+    const words: MushafWord[] = [];
+    const surahStarts: MushafPage['surahStarts'] = [];
+    for (const v of data.verses) {
+      const [surah, ayah] = v.verse_key.split(':').map(Number);
+      v.words.forEach((w) => {
+        const end = w.char_type_name === 'end';
+        if (w.char_type_name !== 'word' && !end) return;
+        if (ayah === 1 && !surahStarts.some((s) => s.surah === surah)) surahStarts.push({ surah, line: w.line_number });
+        words.push({
+          location: end ? `${surah}:${ayah}:end` : w.location || `${surah}:${ayah}:${w.position}`,
+          text: w.text_uthmani,
+          line: w.line_number,
+          end,
+          tajweed: end ? undefined : w.text_uthmani_tajweed || undefined
+        });
+      });
+    }
+    return { page, juz: data.verses[0]?.juz_number ?? 0, words, surahStarts };
+  });

@@ -5,6 +5,7 @@ import { AppSettings } from '../types';
 import { knownLemmasStore } from '../hooks/useKnownLemmas';
 import { useRecitedWord } from '../hooks/useRecitedWord';
 import { WordAudioButton } from './QuranWordBits';
+import { parseTajweed, TAJWEED_RULES, type TajweedRule } from '../services/tajweed';
 
 /** Pieces shared by the surah and juz reading views. */
 
@@ -173,7 +174,8 @@ export const AyahWords = React.memo(function AyahWords({
   selectedLocation,
   onSelect,
   conceal = false,
-  onReveal
+  onReveal,
+  tajweed = false
 }: {
   verse: QVerse;
   className: string;
@@ -184,6 +186,8 @@ export const AyahWords = React.memo(function AyahWords({
   /** Memorisation: blur each word until it has been recited; a tap calls `onReveal` instead */
   conceal?: boolean;
   onReveal?: () => void;
+  /** Colour each word by its tajweed rules */
+  tajweed?: boolean;
 }) {
   const recited = useRecitedWord(verse.key);
   return (
@@ -206,11 +210,21 @@ export const AyahWords = React.memo(function AyahWords({
                   : recited === w.position
                   ? 'bg-emerald-200 dark:bg-emerald-700/70 text-emerald-950 dark:text-white'
                   : highlightUnknown && !isKnown
-                  ? 'text-amber-900 dark:text-amber-200 bg-amber-100/60 dark:bg-amber-900/25 hover:bg-amber-200/70 dark:hover:bg-amber-800/50'
+                  ? `${tajweed ? 'text-stone-900 dark:text-stone-100' : 'text-amber-900 dark:text-amber-200'} bg-amber-100/60 dark:bg-amber-900/25 hover:bg-amber-200/70 dark:hover:bg-amber-800/50`
                   : 'text-stone-900 dark:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800'
               }`}
             >
-              {w.arabic}
+              {tajweed && w.tajweed && !isSelected
+                ? parseTajweed(w.tajweed).map((seg, i) =>
+                    seg.rule ? (
+                      <span key={i} className={seg.rule.className} title={seg.rule.name}>
+                        {seg.text}
+                      </span>
+                    ) : (
+                      seg.text
+                    )
+                  )
+                : w.arabic}
             </button>{' '}
           </React.Fragment>
         );
@@ -219,3 +233,26 @@ export const AyahWords = React.memo(function AyahWords({
     </p>
   );
 });
+
+/** The colours of tajweed, each with the rules it marks. */
+export const TajweedKey: React.FC = () => {
+  const groups = new Map<string, TajweedRule[]>();
+  for (const rule of TAJWEED_RULES) groups.set(rule.className, [...(groups.get(rule.className) ?? []), rule]);
+  return (
+    <div className="card p-4 animate-fadeIn">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-500 dark:text-stone-400 mb-2">
+        Tajweed colours
+      </div>
+      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-1.5 text-xs">
+        {[...groups].map(([className, rules]) => (
+          <li key={className} className="flex items-start gap-2">
+            <span className={`${className} font-quran-amiri text-lg leading-none mt-0.5`} aria-hidden>
+              ●
+            </span>
+            <span className="text-stone-700 dark:text-stone-300">{rules.map((r) => r.name).join(' · ')}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};

@@ -17,6 +17,8 @@ const MORPHOLOGY_BASE = `${import.meta.env.BASE_URL}data/morphology/`;
 
 /** Saheeh International */
 export const DEFAULT_TRANSLATION_ID = 20;
+/** Quran.com's verse transliteration, requested alongside the translation */
+const TRANSLITERATION_ID = 57;
 
 // ---------- the learner's language ----------
 
@@ -104,6 +106,9 @@ export interface QWord {
   verbForm?: string; // "1".."12"
   /** The word marked with tajweed rules (<rule class=…>), for colouring */
   tajweed?: string;
+  /** The word in the IndoPak script, and in simple (imlaei) spelling without Uthmani signs */
+  indopak?: string;
+  imlaei?: string;
 }
 
 export interface QVerse {
@@ -117,6 +122,8 @@ export interface QVerse {
   words: QWord[];
   /** Footnotes of a QuranEnc translation, shown under it */
   translationNotes?: string;
+  /** The verse in Latin letters, for reading along */
+  transliteration?: string;
 }
 
 export interface QSearchResult {
@@ -386,6 +393,8 @@ interface ApiWord {
   char_type_name: string;
   text_uthmani: string;
   text_uthmani_tajweed?: string;
+  text_indopak?: string;
+  text_imlaei?: string;
   audio_url: string | null;
   location?: string;
   translation?: { text: string };
@@ -399,14 +408,14 @@ interface ApiVerse {
   page_number: number;
   text_uthmani: string;
   words: ApiWord[];
-  translations?: { text: string }[];
+  translations?: { text: string; resource_id?: number }[];
   /** Word timings of the recitation: [index, wordPosition, startMs, endMs] */
   audio?: { segments?: number[][] };
 }
 
 const verseQuery = () => {
   const c = CONTENT[language];
-  return `words=true&word_fields=text_uthmani,text_uthmani_tajweed,location&fields=text_uthmani&translations=${c.translation ?? DEFAULT_TRANSLATION_ID}&language=${c.words}&audio=${DEFAULT_RECITATION_ID}`;
+  return `words=true&word_fields=text_uthmani,text_uthmani_tajweed,text_indopak,text_imlaei,location&fields=text_uthmani&translations=${c.translation ?? DEFAULT_TRANSLATION_ID},${TRANSLITERATION_ID}&language=${c.words}&audio=${DEFAULT_RECITATION_ID}`;
 };
 
 /** Al-Muyassar's text for the verses of a Quran.com response, for Arabic readers. */
@@ -477,6 +486,8 @@ const toVerse = (v: ApiVerse, morph: SurahMorphology): QVerse => {
       transliteration: w.transliteration?.text || '',
       audioUrl: w.audio_url ? wordAudioUrl(surah, ayah, w.position) : undefined,
       tajweed: w.text_uthmani_tajweed || undefined,
+      indopak: w.text_indopak || undefined,
+      imlaei: w.text_imlaei || undefined,
       ...parseMorph(ayahMorph[w.position - 1])
     }));
   timingsByKey.set(v.verse_key, toTimings(v.audio?.segments, words.length));
@@ -486,7 +497,8 @@ const toVerse = (v: ApiVerse, morph: SurahMorphology): QVerse => {
     surah,
     ayah,
     arabic: v.text_uthmani,
-    translation: cleanTranslation(v.translations?.[0]?.text || ''),
+    translation: cleanTranslation(v.translations?.find((t) => t.resource_id !== TRANSLITERATION_ID)?.text || ''),
+    transliteration: cleanTranslation(v.translations?.find((t) => t.resource_id === TRANSLITERATION_ID)?.text || '') || undefined,
     juz: v.juz_number,
     page: v.page_number,
     words

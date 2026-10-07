@@ -20,6 +20,7 @@ import { NEXT_COURSE_DECK } from './components/courseWords';
 import { knownLemmasStore } from './hooks/useKnownLemmas';
 import { verseBookmarksStore, understoodVersesStore } from './hooks/useVerseMarks';
 import { useOnline } from './hooks/useOnline';
+import { readingPlanStore } from './services/readingPlan';
 import { BookOpen, Loader2 } from 'lucide-react';
 
 // Secondary tabs are code-split so the first paint only ships the vocabulary feed.
@@ -109,6 +110,8 @@ export function App() {
   const translationChoice = useTranslationChoice(settings.language);
   useEffect(() => {
     document.documentElement.lang = settings.language;
+    // Arabic and Urdu read right to left: the whole layout follows
+    document.documentElement.dir = settings.language === 'ar' || settings.language === 'ur' ? 'rtl' : 'ltr';
   }, [settings.language]);
   const [flashcardDeck, setFlashcardDeck] = useState<string>(NEXT_COURSE_DECK);
   const [wbwVerseKey, setWbwVerseKey] = useState<string>('1:2');
@@ -233,6 +236,7 @@ export function App() {
     knownLemmasStore.reload();
     verseBookmarksStore.reload();
     understoodVersesStore.reload();
+    readingPlanStore.reload();
   };
 
   const handleToggleSave = (wordId: string) => {
@@ -374,6 +378,7 @@ export function App() {
                           onLearnCourseWords={() => openFlashcards(NEXT_COURSE_DECK)}
                           onStudySurah={(s) => openFlashcards(`surah-${s}`)}
                           onReadSurah={openSurah}
+                          onOpenPage={openPage}
                         />
                       )}
 

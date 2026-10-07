@@ -68,6 +68,47 @@ export const followRecitation = (
   audio.addEventListener('error', stop);
 };
 
+/**
+ * Follows a whole-surah recording: works out from its timings which verse and word are being recited, publishes
+ * the word, and calls `onVerse` each time a new verse begins (to scroll to it). Stops like followRecitation.
+ */
+export const followChapterRecitation = (
+  audio: HTMLAudioElement,
+  verses: { key: string; from: number; to: number; words: [number, number, number][] }[],
+  onVerse: (verseKey: string) => void
+): void => {
+  owner = audio;
+  set(null);
+  let frame = 0;
+  let lastKey = '';
+  const tick = () => {
+    if (owner !== audio) return;
+    const ms = audio.currentTime * 1000;
+    const verse = verses.find((v) => ms >= v.from && ms < v.to);
+    if (verse) {
+      if (verse.key !== lastKey) {
+        lastKey = verse.key;
+        onVerse(verse.key);
+      }
+      let position = 0;
+      for (const [p, start] of verse.words) if (start <= ms) position = p;
+      set({ key: verse.key, position });
+    }
+    frame = requestAnimationFrame(tick);
+  };
+  const stop = () => {
+    cancelAnimationFrame(frame);
+    if (owner === audio) set(null);
+  };
+  audio.addEventListener('playing', () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(tick);
+  });
+  audio.addEventListener('pause', stop);
+  audio.addEventListener('ended', stop);
+  audio.addEventListener('error', stop);
+};
+
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
   return () => listeners.delete(listener);

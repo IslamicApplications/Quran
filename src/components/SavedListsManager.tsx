@@ -133,7 +133,7 @@ export const SavedListsManager: React.FC<SavedListsManagerProps> = ({
                     : 'hover:bg-stone-50 dark:hover:bg-stone-900 text-stone-700 dark:text-stone-300'
                 }`}
               >
-                <div className="space-y-0.5 pr-2">
+                <div className="space-y-0.5 pe-2">
                   <div className="font-semibold">{list.title}</div>
                   <div className="text-[11px] text-stone-500 dark:text-stone-300 line-clamp-1">{list.description}</div>
                 </div>

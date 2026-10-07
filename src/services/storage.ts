@@ -13,6 +13,9 @@ const STORAGE_KEYS = {
   UNDERSTOOD_VERSES: 'ayah_words_understood_verses_v1',
 };
 
+/** The reading plan's key (src/services/readingPlan.ts), saved with the backup */
+const READING_PLAN_KEY = 'ayah_words_reading_plan_v1';
+
 /** A saved verse ("2:255") with the learner's own note. */
 export interface VerseBookmark {
   note: string;
@@ -425,7 +428,8 @@ export const StorageService = {
       lastActiveDate: localStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_DATE),
       knownLemmas: StorageService.getKnownLemmas(),
       verseBookmarks: StorageService.getVerseBookmarks(),
-      understoodVerses: StorageService.getUnderstoodVerses()
+      understoodVerses: StorageService.getUnderstoodVerses(),
+      readingPlan: readJson(READING_PLAN_KEY, null)
     };
     return JSON.stringify(data, null, 2);
   },
@@ -444,6 +448,7 @@ export const StorageService = {
       const isMap = (v: unknown) => !!v && typeof v === 'object' && !Array.isArray(v);
       if (isMap(parsed.verseBookmarks)) localStorage.setItem(STORAGE_KEYS.VERSE_BOOKMARKS, JSON.stringify(parsed.verseBookmarks));
       if (isMap(parsed.understoodVerses)) localStorage.setItem(STORAGE_KEYS.UNDERSTOOD_VERSES, JSON.stringify(parsed.understoodVerses));
+      if (isMap(parsed.readingPlan)) localStorage.setItem(READING_PLAN_KEY, JSON.stringify(parsed.readingPlan));
       return true;
     } catch (e) {
       console.error('Failed to import user study data', e);
@@ -453,5 +458,6 @@ export const StorageService = {
 
   clearAllUserData: (): void => {
     Object.values(STORAGE_KEYS).forEach(k => localStorage.removeItem(k));
+    localStorage.removeItem(READING_PLAN_KEY);
   }
 };

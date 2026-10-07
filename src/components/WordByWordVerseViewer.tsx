@@ -24,7 +24,7 @@ const parseKey = (key?: string) => {
 };
 
 const selectClass =
-  'appearance-none pl-3 pr-8 py-2 rounded-xl bg-white dark:bg-stone-900 ring-1 ring-stone-200 dark:ring-stone-700 text-sm font-semibold text-stone-800 dark:text-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer';
+  'appearance-none ps-3 pe-8 py-2 rounded-xl bg-white dark:bg-stone-900 ring-1 ring-stone-200 dark:ring-stone-700 text-sm font-semibold text-stone-800 dark:text-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer';
 
 export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
   verseKey,
@@ -95,7 +95,7 @@ export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+            <ChevronDown className="absolute end-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
           </div>
           <div className="relative">
             <select
@@ -110,7 +110,7 @@ export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+            <ChevronDown className="absolute end-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -151,7 +151,7 @@ export const WordByWordVerseViewer: React.FC<WordByWordVerseViewerProps> = ({
               <RecitedVerseText verse={verse} className="text-3xl sm:text-4xl text-amber-100 leading-loose" />
               <p className="text-sm text-emerald-100 italic pt-2 border-t border-emerald-800/60">
                 <span dir="auto">“{verse.translation}”</span>
-                <span className="not-italic text-emerald-400 text-xs ml-2">— {translationSource().name}</span>
+                <span className="not-italic text-emerald-400 text-xs ms-2">— {translationSource().name}</span>
               </p>
               {verse.translationNotes && (
                 <p dir="auto" className="text-xs text-emerald-200/80 whitespace-pre-line">{verse.translationNotes}</p>
@@ -302,7 +302,7 @@ const WordDetail: React.FC<{
             {word.root ? (
               <>
                 <span className="font-quran-amiri text-lg font-bold text-emerald-900 dark:text-emerald-200">{formatRoot(word.root)}</span>
-                {rootInfo && <span className="text-xs text-stone-500 dark:text-stone-400 ml-2">{rootInfo.n}× in the Quran</span>}
+                {rootInfo && <span className="text-xs text-stone-500 dark:text-stone-400 ms-2">{rootInfo.n}× in the Quran</span>}
               </>
             ) : (
               <span className="text-stone-500 dark:text-stone-400">No root (particle or pronoun)</span>
@@ -313,7 +313,7 @@ const WordDetail: React.FC<{
           <dt className="text-[11px] font-semibold text-stone-400 uppercase tracking-wide">Dictionary form</dt>
           <dd className="mt-0.5">
             <span className="font-quran-amiri text-lg font-bold text-stone-800 dark:text-stone-200">{word.lemma || '—'}</span>
-            {lemmaCount ? <span className="text-xs text-stone-500 dark:text-stone-400 ml-2">{lemmaCount}× in the Quran</span> : null}
+            {lemmaCount ? <span className="text-xs text-stone-500 dark:text-stone-400 ms-2">{lemmaCount}× in the Quran</span> : null}
           </dd>
         </div>
       </dl>

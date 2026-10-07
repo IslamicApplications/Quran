@@ -79,18 +79,18 @@ export const RootConcordanceViewer: React.FC<RootConcordanceViewerProps> = ({ in
           {/* Root list */}
           <div className="card p-3 md:sticky md:top-20">
             <div className="relative mb-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
               <input
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Root or word: رحم, كتاب, mercy"
-                className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-950/60 ring-1 ring-stone-200 dark:ring-stone-700 text-sm focus:bg-white dark:focus:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 [&::-webkit-search-cancel-button]:hidden"
+                className="w-full ps-9 pe-8 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-950/60 ring-1 ring-stone-200 dark:ring-stone-700 text-sm focus:bg-white dark:focus:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 [&::-webkit-search-cancel-button]:hidden"
               />
               {query && (
                 <button
                   onClick={() => setQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 cursor-pointer"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 p-1 text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 cursor-pointer"
                   aria-label="Clear"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -101,7 +101,7 @@ export const RootConcordanceViewer: React.FC<RootConcordanceViewerProps> = ({ in
               {matches.length.toLocaleString()} root{matches.length === 1 ? '' : 's'}
               {matches.length > MAX_LIST ? ` · showing top ${MAX_LIST} by frequency` : ''}
             </div>
-            <div className="max-h-[60vh] overflow-y-auto space-y-0.5 pr-1">
+            <div className="max-h-[60vh] overflow-y-auto space-y-0.5 pe-1">
               {matches.slice(0, MAX_LIST).map(([root, e]) => {
                 const isSelected = selected === root;
                 return (

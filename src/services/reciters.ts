@@ -5,7 +5,7 @@
  * their verses play from the Quran API's files and the word highlighting is estimated from each word's length.
  */
 import { useSyncExternalStore } from 'react';
-import { DEFAULT_RECITATION_ID, getRecitationTimings, type WordTiming } from './quranCom';
+import { cached, getJson, DEFAULT_RECITATION_ID, getRecitationTimings, type WordTiming } from './quranCom';
 
 const VERSES = 'https://verses.quran.com/';
 const MIRROR = 'https://mirrors.quranicaudio.com/everyayah/';
@@ -13,19 +13,19 @@ const MIRROR = 'https://mirrors.quranicaudio.com/everyayah/';
 // Ids 1–5 follow the Quran API's numbering (its files are Data/<id>/…); the rest are Quran.com recitations,
 // whose word timings come from Tarteel's Quranic Universal Library (QUL)
 export const RECITERS = [
-  { id: 1, name: 'Mishary Rashid Alafasy', quranCom: { recitation: DEFAULT_RECITATION_ID, base: `${VERSES}Alafasy/mp3/` } },
-  { id: 2, name: 'Abu Bakr Al-Shatri', quranCom: { recitation: 4, base: `${VERSES}Shatri/mp3/` } },
+  { id: 1, name: 'Mishary Rashid Alafasy', chapterAudio: 7, quranCom: { recitation: DEFAULT_RECITATION_ID, base: `${VERSES}Alafasy/mp3/` } },
+  { id: 2, name: 'Abu Bakr Al-Shatri', chapterAudio: 4, quranCom: { recitation: 4, base: `${VERSES}Shatri/mp3/` } },
   { id: 3, name: 'Nasser Al-Qatami' },
-  { id: 4, name: 'Yasser Al-Dosari' },
-  { id: 5, name: 'Hani Ar-Rifai', quranCom: { recitation: 5, base: `${VERSES}Rifai/mp3/` } },
-  { id: 6, name: 'AbdulBaset AbdulSamad (Murattal)', quranCom: { recitation: 2, base: `${VERSES}AbdulBaset/Murattal/mp3/` } },
-  { id: 7, name: 'AbdulBaset AbdulSamad (Mujawwad)', quranCom: { recitation: 1, base: `${VERSES}AbdulBaset/Mujawwad/mp3/` } },
-  { id: 8, name: 'Abdur-Rahman as-Sudais', quranCom: { recitation: 3, base: `${VERSES}Sudais/mp3/` } },
-  { id: 9, name: 'Mahmoud Khalil Al-Husary', quranCom: { recitation: 6, base: `${MIRROR}Husary_64kbps/` } },
-  { id: 10, name: 'Al-Husary (Muallim, for learners)', quranCom: { recitation: 12, base: `${MIRROR}Husary_Muallim_128kbps/` } },
-  { id: 11, name: 'Mohamed Siddiq al-Minshawi (Murattal)', quranCom: { recitation: 9, base: `${VERSES}Minshawi/Murattal/mp3/` } },
-  { id: 12, name: 'Mohamed Siddiq al-Minshawi (Mujawwad)', quranCom: { recitation: 8, base: `${VERSES}Minshawi/Mujawwad/mp3/` } },
-  { id: 13, name: "Sa'ud ash-Shuraym", quranCom: { recitation: 10, base: `${VERSES}Shuraym/mp3/` } },
+  { id: 4, name: 'Yasser Al-Dosari', chapterAudio: 97 },
+  { id: 5, name: 'Hani Ar-Rifai', chapterAudio: 5, quranCom: { recitation: 5, base: `${VERSES}Rifai/mp3/` } },
+  { id: 6, name: 'AbdulBaset AbdulSamad (Murattal)', chapterAudio: 2, quranCom: { recitation: 2, base: `${VERSES}AbdulBaset/Murattal/mp3/` } },
+  { id: 7, name: 'AbdulBaset AbdulSamad (Mujawwad)', chapterAudio: 1, quranCom: { recitation: 1, base: `${VERSES}AbdulBaset/Mujawwad/mp3/` } },
+  { id: 8, name: 'Abdur-Rahman as-Sudais', chapterAudio: 3, quranCom: { recitation: 3, base: `${VERSES}Sudais/mp3/` } },
+  { id: 9, name: 'Mahmoud Khalil Al-Husary', chapterAudio: 6, quranCom: { recitation: 6, base: `${MIRROR}Husary_64kbps/` } },
+  { id: 10, name: 'Al-Husary (Muallim, for learners)', chapterAudio: 12, quranCom: { recitation: 12, base: `${MIRROR}Husary_Muallim_128kbps/` } },
+  { id: 11, name: 'Mohamed Siddiq al-Minshawi (Murattal)', chapterAudio: 9, quranCom: { recitation: 9, base: `${VERSES}Minshawi/Murattal/mp3/` } },
+  { id: 12, name: 'Mohamed Siddiq al-Minshawi (Mujawwad)', chapterAudio: 8, quranCom: { recitation: 8, base: `${VERSES}Minshawi/Mujawwad/mp3/` } },
+  { id: 13, name: "Sa'ud ash-Shuraym", chapterAudio: 10, quranCom: { recitation: 10, base: `${VERSES}Shuraym/mp3/` } },
   { id: 14, name: 'Mohamed al-Tablawi', quranCom: { recitation: 11, base: `${MIRROR}Mohammad_al_Tablaway_128kbps/` } }
 ] as const;
 
@@ -110,3 +110,41 @@ export const reciterStore = {
 };
 
 export const useReciter = (): ReciterId => useSyncExternalStore(reciterStore.subscribe, reciterStore.get);
+
+// ---------- whole-surah recordings ----------
+
+/**
+ * A surah recited without gaps, from Quran.com's audio service, with each verse's span and each word's timing
+ * in it (milliseconds from the start). Not for Nasser al-Qatami or at-Tablawi, who have no such recording there.
+ */
+export interface ChapterRecording {
+  surah: number;
+  url: string;
+  verses: { key: string; from: number; to: number; words: [position: number, start: number, end: number][] }[];
+}
+
+export const hasChapterAudio = (id: ReciterId): boolean => 'chapterAudio' in reciterInfo(id);
+
+export const fetchChapterRecording = (id: ReciterId, surah: number): Promise<ChapterRecording> => {
+  const info = reciterInfo(id);
+  if (!('chapterAudio' in info)) return Promise.reject(new Error('No whole-surah recording for this reciter'));
+  return cached(`chapter-audio:${info.chapterAudio}:${surah}`, async () => {
+    const { audio_files } = await getJson<{
+      audio_files: {
+        audio_url: string;
+        verse_timings: { verse_key: string; timestamp_from: number; timestamp_to: number; segments: number[][] }[];
+      }[];
+    }>(`https://api.qurancdn.com/api/qdc/audio/reciters/${info.chapterAudio}/audio_files?chapter=${surah}&segments=true`);
+    const file = audio_files[0];
+    return {
+      surah,
+      url: file.audio_url,
+      verses: file.verse_timings.map((v) => ({
+        key: v.verse_key,
+        from: v.timestamp_from,
+        to: v.timestamp_to,
+        words: v.segments.filter((seg) => seg.length >= 3).map(([p, s, e]) => [p, s, e] as [number, number, number])
+      }))
+    };
+  });
+};

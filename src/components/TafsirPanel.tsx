@@ -1,22 +1,13 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { ScrollText, ChevronDown } from 'lucide-react';
-import { loadTafsir, tafsirBlocks, tafsirsFor, TAFSIRS, TafsirId } from '../services/tafsir';
+import { loadTafsir, readTafsirChoice, saveTafsirChoice, tafsirBlocks, tafsirsFor, TAFSIRS, TafsirId } from '../services/tafsir';
 import { contentLanguage } from '../services/quranCom';
 import { LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
 
-const TAFSIR_KEY = 'ayah-words-tafsir';
 // Blocks shown before "Read the full commentary"; some commentaries run to many thousand words
 const PREVIEW_BLOCKS = 4;
 
-const readTafsir = (): TafsirId => {
-  try {
-    const id = localStorage.getItem(TAFSIR_KEY);
-    // A tafsir saved under another language (Urdu) may not be offered now
-    return tafsirsFor(contentLanguage()).some((t) => t.id === id) ? (id as TafsirId) : 'ibn_kathir';
-  } catch {
-    return 'ibn_kathir';
-  }
-};
+const readTafsir = () => readTafsirChoice(contentLanguage());
 
 /** Classical commentary on one verse, with a choice of tafsir. */
 export const TafsirPanel: React.FC<{ verseKey: string; className?: string }> = ({ verseKey, className = '' }) => {
@@ -36,11 +27,7 @@ export const TafsirPanel: React.FC<{ verseKey: string; className?: string }> = (
 
   const setTafsir = (id: TafsirId) => {
     setTafsirState(id);
-    try {
-      localStorage.setItem(TAFSIR_KEY, id);
-    } catch {
-      /* storage unavailable: keep the choice for this session */
-    }
+    saveTafsirChoice(id);
   };
 
   const toggleExpanded = () => {

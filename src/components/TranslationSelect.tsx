@@ -21,12 +21,12 @@ export const TranslationSelect: React.FC<{ language: string; className?: string 
   if (language === 'ar' || !options?.length) return null;
   return (
     <label className={`relative inline-flex items-center shrink-0 ${className}`}>
-      <BookType className="absolute left-2.5 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
+      <BookType className="absolute start-2.5 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
       <select
         value={choice?.key ?? ''}
         onChange={(e) => translationStore.set(language, options.find((o) => o.key === e.target.value) ?? null)}
         aria-label="Translation"
-        className="appearance-none max-w-[16rem] pl-7 pr-7 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 ring-1 ring-stone-200/70 dark:ring-stone-700/70 text-xs font-semibold text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
+        className="appearance-none max-w-[16rem] ps-7 pe-7 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 ring-1 ring-stone-200/70 dark:ring-stone-700/70 text-xs font-semibold text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
       >
         <option value="">{defaultTranslationName(language)} · Quran.com</option>
         {options.map((o) => (
@@ -35,7 +35,7 @@ export const TranslationSelect: React.FC<{ language: string; className?: string 
           </option>
         ))}
       </select>
-      <ChevronDown className="absolute right-2.5 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
+      <ChevronDown className="absolute end-2.5 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
     </label>
   );
 };

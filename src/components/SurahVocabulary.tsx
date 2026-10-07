@@ -119,7 +119,7 @@ export const SurahVocabulary: React.FC<SurahVocabularyProps> = ({ surah, theme =
             { id: 'particle', label: 'Particles' }
           ]}
         />
-        <span className="ml-auto text-xs text-stone-500 dark:text-stone-400 tabular-nums">{visible.length} words</span>
+        <span className="ms-auto text-xs text-stone-500 dark:text-stone-400 tabular-nums">{visible.length} words</span>
       </div>
 
       {visible.length === 0 ? (

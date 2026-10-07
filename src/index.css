@@ -174,6 +174,12 @@
   }
 }
 
+/* In the right-to-left layout (Arabic, Urdu), text still in English takes its direction from its own first
+   letters, so its punctuation stays at its end ("teachers." not ".teachers") */
+html[dir='rtl'] :is(p, h1, h2, h3, h4, h5, h6, li, dd, dt, blockquote) {
+  unicode-bidi: plaintext;
+}
+
 /* Arabic typography: the font and size chosen in Settings, which the app sets on <html> */
 :root {
   --font-quran: 'Amiri', serif;

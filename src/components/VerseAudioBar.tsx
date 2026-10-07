@@ -83,7 +83,7 @@ export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
     part === 'arabic' ? `${arabicReciter} (Arabic)` : `${spokenTranslation.reader} (${spokenTranslation.language})`;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 p-2 pr-3 rounded-2xl bg-white dark:bg-stone-900 ring-1 ring-stone-200/80 dark:ring-stone-700/80 text-xs">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 p-2 pe-3 rounded-2xl bg-white dark:bg-stone-900 ring-1 ring-stone-200/80 dark:ring-stone-700/80 text-xs">
       <div className="flex items-center gap-3">
         <button
           onClick={toggle}

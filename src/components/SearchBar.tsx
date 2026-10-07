@@ -68,7 +68,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     <div className="card p-3 sm:p-4 space-y-3">
       {/* Main Search Input */}
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 pointer-events-none" />
+        <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 pointer-events-none" />
         <input
           ref={inputRef}
           type="search"
@@ -76,18 +76,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search Arabic, transliteration, meaning, or verse (2:255)"
           aria-label="Search Quranic vocabulary"
-          className="w-full pl-12 pr-16 py-3.5 rounded-xl bg-stone-50 dark:bg-stone-950/60 ring-1 ring-stone-200 dark:ring-stone-700 text-stone-900 dark:text-stone-100 text-[15px] focus:bg-white dark:focus:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all placeholder:text-stone-400 [&::-webkit-search-cancel-button]:hidden"
+          className="w-full ps-12 pe-16 py-3.5 rounded-xl bg-stone-50 dark:bg-stone-950/60 ring-1 ring-stone-200 dark:ring-stone-700 text-stone-900 dark:text-stone-100 text-[15px] focus:bg-white dark:focus:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all placeholder:text-stone-400 [&::-webkit-search-cancel-button]:hidden"
         />
         {searchQuery ? (
           <button
             onClick={() => onSearchChange('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
+            className="absolute end-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
             aria-label="Clear search"
           >
             <X className="w-4 h-4" />
           </button>
         ) : (
-          <kbd className="hidden sm:flex absolute right-3.5 top-1/2 -translate-y-1/2 items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-stone-900 ring-1 ring-stone-200 dark:ring-stone-700 text-[11px] font-semibold text-stone-400">
+          <kbd className="hidden sm:flex absolute end-3.5 top-1/2 -translate-y-1/2 items-center justify-center w-6 h-6 rounded-md bg-white dark:bg-stone-900 ring-1 ring-stone-200 dark:ring-stone-700 text-[11px] font-semibold text-stone-400">
             /
           </kbd>
         )}
@@ -121,7 +121,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             <select
               value={selectedSurah || ''}
               onChange={(e) => onSurahChange(e.target.value ? parseInt(e.target.value, 10) : undefined)}
-              className={`appearance-none text-xs pl-3 pr-8 py-2 rounded-xl font-semibold ring-1 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer ${
+              className={`appearance-none text-xs ps-3 pe-8 py-2 rounded-xl font-semibold ring-1 focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer ${
                 selectedSurah !== undefined
                   ? 'bg-emerald-50 dark:bg-emerald-950/25 ring-emerald-200 dark:ring-emerald-800 text-emerald-900 dark:text-emerald-200'
                   : 'bg-white dark:bg-stone-900 ring-stone-200 dark:ring-stone-700 text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-900'
@@ -135,7 +135,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
+            <ChevronDown className="absolute end-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
           </div>
 
           <button

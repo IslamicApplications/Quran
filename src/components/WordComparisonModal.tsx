@@ -30,7 +30,7 @@ export const WordComparisonModal: React.FC<WordComparisonModalProps> = ({
     <div className="space-y-6">
       {/* Selector of comparative words */}
       <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-stone-100 dark:border-stone-800">
-        <span className="text-xs font-semibold text-stone-500 dark:text-stone-400 shrink-0 mr-1 flex items-center gap-1">
+        <span className="text-xs font-semibold text-stone-500 dark:text-stone-400 shrink-0 me-1 flex items-center gap-1">
           <Compass className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
           <span>Select Word Study:</span>
         </span>
@@ -46,7 +46,7 @@ export const WordComparisonModal: React.FC<WordComparisonModalProps> = ({
                   : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300'
               }`}
             >
-              <span className="font-quran-amiri font-bold text-sm mr-1.5">{comp.wordArabic}</span>
+              <span className="font-quran-amiri font-bold text-sm me-1.5">{comp.wordArabic}</span>
               <span>({comp.transliteration})</span>
             </button>
           );

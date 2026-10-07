@@ -1,3 +1,4 @@
+import { t } from '../i18n/strings';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Target, Check, Play, X, Eye, RotateCcw, Trophy, EyeOff } from 'lucide-react';
@@ -68,7 +69,7 @@ export const CoverageCourse: React.FC<CoverageCourseProps> = ({ onOpenVerse }) =
                 <Target className="w-3.5 h-3.5 text-amber-300" />
                 Frequency-based course
               </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">The 85% Course</h2>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{t('courseTitle')}</h2>
               <p className="text-sm text-emerald-100/80 leading-relaxed">
                 Just {data.words.length.toLocaleString()} words make up 85% of the Quran’s{' '}
                 {data.totalWords.toLocaleString()} words. Learn them in order of frequency, and every word you mark
@@ -89,7 +90,7 @@ export const CoverageCourse: React.FC<CoverageCourseProps> = ({ onOpenVerse }) =
           <div className="pt-5 pb-5">
             <div className="relative h-3 rounded-full bg-emerald-950/60 ring-1 ring-white/10">
               <div
-                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-amber-300 to-amber-500 transition-all duration-500"
+                className="absolute inset-y-0 start-0 rounded-full bg-gradient-to-r from-amber-300 to-amber-500 transition-all duration-500"
                 style={{ width: `${Math.min(coveragePercent, 100)}%` }}
               />
               {MILESTONES.map((m, i) => {
@@ -170,7 +171,7 @@ export const CoverageCourse: React.FC<CoverageCourseProps> = ({ onOpenVerse }) =
               }`}
             >
               <EyeOff className="w-3.5 h-3.5" />
-              Hide known
+              {t('hideKnown')}
             </button>
             <button
               onClick={() => {
@@ -180,7 +181,7 @@ export const CoverageCourse: React.FC<CoverageCourseProps> = ({ onOpenVerse }) =
               className="inline-flex items-center gap-1.5 text-xs px-4 py-2 rounded-xl font-bold bg-emerald-800 hover:bg-emerald-900 text-white shadow-sm cursor-pointer"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
-              Study this unit
+              {t('studyUnit')}
             </button>
           </div>
         </div>
@@ -334,7 +335,7 @@ export const CourseWordCard: React.FC<{
           }`}
         >
           <Check className="w-3.5 h-3.5" />
-          {isKnown ? 'Known' : 'Mark known'}
+          {isKnown ? t('known') : t('markKnown')}
         </button>
       </div>
     </div>

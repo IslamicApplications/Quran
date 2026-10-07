@@ -10,7 +10,8 @@ import {
   Highlighter,
   Languages,
   ChevronDown,
-  ArrowRight
+  ArrowRight,
+  ScrollText
 } from 'lucide-react';
 import { SURAH_LIST } from '../data/surahList';
 import {
@@ -18,7 +19,6 @@ import {
   surahCoverage,
   fetchChapterPage,
   playAudio,
-  verseAudioUrl,
   englishVerseAudioUrl,
   QVerse,
   QWord,
@@ -29,7 +29,10 @@ import { useKnownLemmas, knownLemmasStore } from '../hooks/useKnownLemmas';
 import { followRecitation } from '../hooks/useRecitedWord';
 import { LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
 import { ARABIC_SIZES, AudioMode, AyahWords, BISMILLAH, Segmented, ToggleChip, WordSheet } from './ReaderParts';
+import { ReciterSelect } from './ReciterSelect';
+import { reciterAudioUrl, reciterName, reciterStore, hasWordTimings, useReciter } from '../services/reciters';
 import { JuzList, JuzView, juzRangeLabel, readLastJuz } from './JuzReader';
+import { TafsirPanel } from './TafsirPanel';
 
 interface SurahReaderProps {
   surah?: number;
@@ -273,6 +276,8 @@ const SurahView: React.FC<
   const [playing, setPlaying] = useState<{ key: string; part: 'arabic' | 'english' } | null>(null);
   const [selected, setSelected] = useState<QWord | null>(null);
   const [showToLearn, setShowToLearn] = useState(false);
+  const [tafsirKey, setTafsirKey] = useState<string | null>(null);
+  const reciter = useReciter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -324,9 +329,11 @@ const SurahView: React.FC<
   const playVerse = useCallback(
     (ayah: number, part: 'arabic' | 'english') => {
       const key = `${surah}:${ayah}`;
-      const audio = playAudio(part === 'arabic' ? verseAudioUrl(key) : englishVerseAudioUrl(key));
+      // Read at play time, so a reciter chosen mid-surah takes over from the next verse
+      const reciter = reciterStore.get();
+      const audio = playAudio(part === 'arabic' ? reciterAudioUrl(key, reciter) : englishVerseAudioUrl(key));
       audioRef.current = audio;
-      if (part === 'arabic') followRecitation(audio, key);
+      if (part === 'arabic' && hasWordTimings(reciter)) followRecitation(audio, key);
       setPlaying({ key, part });
       document.getElementById(`ayah-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       audio.onpause = () => audioRef.current === audio && !audio.ended && setPlaying(null);
@@ -434,7 +441,9 @@ const SurahView: React.FC<
       <div className="glass sticky top-16 z-20 -mx-1 px-1 py-2 flex flex-wrap items-center gap-2 rounded-2xl">
         <ToggleChip active={highlight} onClick={() => setHighlight(!highlight)} icon={Highlighter} label="Highlight unknown" />
         <ToggleChip active={showTranslation} onClick={() => setShowTranslation(!showTranslation)} icon={Languages} label="Translation" />
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {/* A verse playing in Arabic restarts in the new voice */}
+          <ReciterSelect onChange={() => playing?.part === 'arabic' && playVerse(Number(playing.key.split(':')[1]), 'arabic')} />
           <Segmented
             value={audioMode}
             onChange={(m) => {
@@ -488,6 +497,17 @@ const SurahView: React.FC<
                     >
                       {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                     </button>
+                    <button
+                      onClick={() => setTafsirKey(tafsirKey === v.key ? null : v.key)}
+                      aria-label={`Tafsir of ayah ${v.ayah}`}
+                      aria-expanded={tafsirKey === v.key}
+                      title="Tafsir"
+                      className={`w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors ${
+                        tafsirKey === v.key ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300' : 'text-stone-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/25'
+                      }`}
+                    >
+                      <ScrollText className="w-3.5 h-3.5" />
+                    </button>
                   </div>
 
                   <div className="flex-1 min-w-0 space-y-3">
@@ -509,6 +529,7 @@ const SurahView: React.FC<
                         {v.translation}
                       </p>
                     )}
+                    {tafsirKey === v.key && <TafsirPanel verseKey={v.key} className="animate-fadeIn" />}
                   </div>
                 </div>
               </div>
@@ -538,7 +559,7 @@ const SurahView: React.FC<
       </div>
 
       <p className="text-[11px] text-stone-400 text-center pb-24">
-        Text &amp; translation (Saheeh International): Quran.com · Arabic audio: Mishary Rashid Alafasy · English
+        Text &amp; translation (Saheeh International): Quran.com · Arabic audio: {reciterName(reciter)} · English
         audio: Ibrahim Walk (EveryAyah.com) · Word data: Quranic Arabic Corpus
       </p>
 

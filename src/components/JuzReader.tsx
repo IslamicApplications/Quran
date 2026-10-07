@@ -2,12 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import { ArrowLeft, ArrowRight, Play, Pause, Highlighter, Languages, Type } from 'lucide-react';
 import { SURAH_LIST } from '../data/surahList';
-import { playAudio, verseAudioUrl, englishVerseAudioUrl, fetchVerse, QWord } from '../services/quranCom';
+import { playAudio, englishVerseAudioUrl, fetchVerse, QWord } from '../services/quranCom';
+import { reciterAudioUrl, reciterName, reciterStore, hasWordTimings, useReciter } from '../services/reciters';
 import { fetchJuz, JUZ_RANGES, TRANSLATIONS, TranslationId } from '../services/ummahApi';
 import { AppSettings } from '../types';
 import { followRecitation } from '../hooks/useRecitedWord';
 import { LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
 import { ARABIC_SIZES, AudioMode, AyahWords, BISMILLAH, Segmented, ToggleChip, WordSheet } from './ReaderParts';
+import { ReciterSelect } from './ReciterSelect';
 
 const LAST_JUZ_KEY = 'ayah-words-last-juz';
 const TRANSLATION_KEY = 'ayah-words-juz-translation';
@@ -88,6 +90,7 @@ export const JuzView: React.FC<{
   const [playing, setPlaying] = useState<{ index: number; part: 'arabic' | 'english' } | null>(null);
   const [selected, setSelected] = useState<QWord | null>(null);
   const [shown, setShown] = useState(BATCH);
+  const reciter = useReciter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -149,9 +152,11 @@ export const JuzView: React.FC<{
     (index: number, part: 'arabic' | 'english') => {
       if (!verses) return;
       const key = verses[index].key;
-      const audio = playAudio(part === 'arabic' ? verseAudioUrl(key) : englishVerseAudioUrl(key));
+      // Read at play time, so a reciter chosen mid-juz takes over from the next verse
+      const reciter = reciterStore.get();
+      const audio = playAudio(part === 'arabic' ? reciterAudioUrl(key, reciter) : englishVerseAudioUrl(key));
       audioRef.current = audio;
-      if (part === 'arabic') followRecitation(audio, key);
+      if (part === 'arabic' && hasWordTimings(reciter)) followRecitation(audio, key);
       setPlaying({ index, part });
       setShown((n) => Math.max(n, index + BATCH / 3));
       requestAnimationFrame(() =>
@@ -244,7 +249,9 @@ export const JuzView: React.FC<{
             ))}
           </select>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {/* A verse playing in Arabic restarts in the new voice */}
+          <ReciterSelect onChange={() => playing?.part === 'arabic' && playVerse(playing.index, 'arabic')} />
           <Segmented
             value={audioMode}
             onChange={(m) => {
@@ -391,7 +398,7 @@ export const JuzView: React.FC<{
       </div>
 
       <p className="text-[11px] text-stone-400 text-center pb-24">
-        Text, transliteration &amp; translations: UmmahAPI · Arabic audio: Mishary Rashid Alafasy · English audio:
+        Text, transliteration &amp; translations: UmmahAPI · Arabic audio: {reciterName(reciter)} · English audio:
         Ibrahim Walk (EveryAyah.com) · Word data: Quranic Arabic Corpus, meanings from Quran.com
       </p>
 

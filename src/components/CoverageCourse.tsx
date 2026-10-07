@@ -238,10 +238,6 @@ export const CoverageCourse: React.FC<CoverageCourseProps> = ({ onOpenVerse }) =
         </p>
       </div>
 
-      <p className="text-[11px] text-stone-400 text-center">
-        Word frequencies &amp; roots: Quranic Arabic Corpus (GPL-3.0) · Meanings &amp; audio: Quran.com
-      </p>
-
       {studyWords &&
         createPortal(
           <StudySession
@@ -255,12 +251,15 @@ export const CoverageCourse: React.FC<CoverageCourseProps> = ({ onOpenVerse }) =
   );
 };
 
-const CourseWordCard: React.FC<{
+/** `label` and `frequency` replace the card's top line (rank and Quran-wide count), e.g. for a surah's word list. */
+export const CourseWordCard: React.FC<{
   word: CoverageWord;
   isKnown: boolean;
   onToggleKnown: () => void;
   onOpenVerse?: (key: string) => void;
-}> = ({ word, isKnown, onToggleKnown, onOpenVerse }) => {
+  label?: React.ReactNode;
+  frequency?: React.ReactNode;
+}> = ({ word, isKnown, onToggleKnown, onOpenVerse, label, frequency }) => {
   const { data, error } = useAsync(() => fetchWordAt(word.sample), [word.sample]);
   const [s, a] = word.sample.split(':').map(Number);
   const typeLabel = wordTypeLabel(word);
@@ -274,8 +273,10 @@ const CourseWordCard: React.FC<{
       }`}
     >
       <div className="flex items-center justify-between text-[11px]">
-        <span className="font-bold text-stone-400 tabular-nums">#{word.rank}</span>
-        <span className="font-semibold text-stone-500 dark:text-stone-400 tabular-nums">{word.appearances.toLocaleString()}× in the Quran</span>
+        <span className="font-bold text-stone-400 tabular-nums">{label ?? `#${word.rank}`}</span>
+        <span className="font-semibold text-stone-500 dark:text-stone-400 tabular-nums">
+          {frequency ?? `${word.appearances.toLocaleString()}× in the Quran`}
+        </span>
       </div>
 
       <div className="flex items-start justify-between gap-3">

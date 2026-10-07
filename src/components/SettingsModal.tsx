@@ -1,3 +1,4 @@
+import { t } from '../i18n/strings';
 import React, { useState } from 'react';
 import {
   X,
@@ -91,7 +92,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 flex items-center justify-center">
               <Settings className="w-4 h-4" />
             </div>
-            <h2 className="text-lg font-bold text-stone-800 dark:text-stone-200">App Preferences &amp; Privacy</h2>
+            <h2 className="text-lg font-bold text-stone-800 dark:text-stone-200">{t('settingsTitle')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -106,13 +107,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="space-y-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
             <Sun className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
-            <span>Appearance</span>
+            <span>{t('appearance')}</span>
           </h3>
           <div className="grid grid-cols-3 gap-2">
             {([
-              { id: 'system', label: 'System', icon: Monitor },
-              { id: 'light', label: 'Light', icon: Sun },
-              { id: 'dark', label: 'Dark', icon: Moon }
+              { id: 'system', label: t('systemTheme'), icon: Monitor },
+              { id: 'light', label: t('light'), icon: Sun },
+              { id: 'dark', label: t('dark'), icon: Moon }
             ] as { id: ThemePreference; label: string; icon: typeof Sun }[]).map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -135,13 +136,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="space-y-4">
           <h3 className="text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
             <Type className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
-            <span>Arabic Typography &amp; Sizing</span>
+            <span>{t('typography')}</span>
           </h3>
 
           {/* Size choices */}
           <div>
             <label className="block text-xs font-medium text-stone-700 dark:text-stone-300 mb-2">
-              Arabic Script Font Size:
+              {t('fontSize')}
             </label>
             <div className="grid grid-cols-4 gap-2">
               {(['md', 'lg', 'xl', '2xl'] as const).map((size) => (
@@ -163,7 +164,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Font choice */}
           <div>
             <label className="block text-xs font-medium text-stone-700 dark:text-stone-300 mb-2">
-              Arabic Font Style:
+              {t('fontStyle')}
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -194,7 +195,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           {/* Verse translation for the chosen language */}
           <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700">
-            <div className="text-xs font-semibold text-stone-800 dark:text-stone-200">Verse translation</div>
+            <div className="text-xs font-semibold text-stone-800 dark:text-stone-200">{t('verseTranslation')}</div>
             <TranslationSelect language={settings.language} />
           </div>
 

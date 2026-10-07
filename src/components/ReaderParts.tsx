@@ -6,6 +6,7 @@ import { knownLemmasStore } from '../hooks/useKnownLemmas';
 import { useRecitedWord } from '../hooks/useRecitedWord';
 import { WordAudioButton } from './QuranWordBits';
 import { parseTajweed, TAJWEED_RULES, type TajweedRule } from '../services/tajweed';
+import { wordText, type QuranScript } from '../services/script';
 
 /** Pieces shared by the surah and juz reading views. */
 
@@ -175,7 +176,8 @@ export const AyahWords = React.memo(function AyahWords({
   onSelect,
   conceal = false,
   onReveal,
-  tajweed = false
+  tajweed = false,
+  script = 'uthmani'
 }: {
   verse: QVerse;
   className: string;
@@ -186,8 +188,9 @@ export const AyahWords = React.memo(function AyahWords({
   /** Memorisation: blur each word until it has been recited; a tap calls `onReveal` instead */
   conceal?: boolean;
   onReveal?: () => void;
-  /** Colour each word by its tajweed rules */
+  /** Colour each word by its tajweed rules (Uthmani script only) */
   tajweed?: boolean;
+  script?: QuranScript;
 }) {
   const recited = useRecitedWord(verse.key);
   return (
@@ -214,7 +217,7 @@ export const AyahWords = React.memo(function AyahWords({
                   : 'text-stone-900 dark:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800'
               }`}
             >
-              {tajweed && w.tajweed && !isSelected
+              {tajweed && script === 'uthmani' && w.tajweed && !isSelected
                 ? parseTajweed(w.tajweed).map((seg, i) =>
                     seg.rule ? (
                       <span key={i} className={seg.rule.className} title={seg.rule.name}>
@@ -224,7 +227,7 @@ export const AyahWords = React.memo(function AyahWords({
                       seg.text
                     )
                   )
-                : w.arabic}
+                : wordText(w, script)}
             </button>{' '}
           </React.Fragment>
         );

@@ -270,7 +270,7 @@ export const JuzView: React.FC<{
             ))}
           </select>
         )}
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="ms-auto flex flex-wrap items-center gap-2">
           {/* A verse playing in Arabic restarts in the new voice */}
           <ReciterSelect onChange={() => playing?.part === 'arabic' && playVerse(playing.index, 'arabic')} />
           <Segmented
@@ -383,7 +383,7 @@ export const JuzView: React.FC<{
                             className={`text-stone-600 dark:text-stone-400 leading-relaxed ${'rtl' in translation ? 'text-base text-right' : 'text-sm'}`}
                           >
                             {isPlaying && playing?.part === 'english' && (
-                              <span className="inline-block mr-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                              <span className="inline-block me-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
                                 Playing
                               </span>
                             )}

@@ -29,11 +29,11 @@ export const Hero: React.FC<HeroProps> = ({
     <section className="relative overflow-hidden rounded-3xl hero-surface shadow-xl shadow-emerald-950/10">
       <div className="absolute inset-0 geo-pattern" aria-hidden />
       <div
-        className="absolute -top-24 -right-16 w-80 h-80 rounded-full bg-amber-400/20 blur-3xl"
+        className="absolute -top-24 -end-16 w-80 h-80 rounded-full bg-amber-400/20 blur-3xl"
         aria-hidden
       />
       <div
-        className="absolute right-6 sm:right-10 top-1/2 -translate-y-1/2 font-quran-amiri text-[9rem] sm:text-[12rem] leading-none text-white/[0.06] select-none pointer-events-none hidden sm:block"
+        className="absolute end-6 sm:end-10 top-1/2 -translate-y-1/2 font-quran-amiri text-[9rem] sm:text-[12rem] leading-none text-white/[0.06] select-none pointer-events-none hidden sm:block"
         aria-hidden
       >
         اقْرَأْ

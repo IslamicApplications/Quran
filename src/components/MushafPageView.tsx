@@ -6,6 +6,7 @@ import { LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
 import { BISMILLAH, TajweedKey, ToggleChip } from './ReaderParts';
 import { parseTajweed, readTajweedPreference, saveTajweedPreference } from '../services/tajweed';
 import { t } from '../i18n/strings';
+import { planStatus, readingPlanStore, useReadingPlan } from '../services/readingPlan';
 
 export const MUSHAF_PAGES = 604;
 const LINES = 15;
@@ -67,6 +68,9 @@ export const MushafPageView: React.FC<{
 }> = ({ page, onSelectPage, onOpenVerse }) => {
   const { data: loaded, error, retry } = useAsync(() => fetchMushafPage(page), [page]);
   const [tajweed, setTajweed] = useState(readTajweedPreference);
+  const plan = useReadingPlan();
+  const portion = plan ? planStatus(plan).next : undefined;
+  const inPortion = portion && page >= portion.from && page <= portion.to ? portion : undefined;
   // What is being typed in the page box; it jumps on Enter or leaving the box, not on every keystroke
   const [draft, setDraft] = useState<string | null>(null);
   const goToDraft = () => {
@@ -153,6 +157,25 @@ export const MushafPageView: React.FC<{
         />
       </div>
       {tajweed && <TajweedKey />}
+
+      {inPortion && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/25 ring-1 ring-emerald-200 dark:ring-emerald-800 text-sm">
+          <span className="text-emerald-900 dark:text-emerald-200">
+            Today’s reading, day {inPortion.day}: page{' '}
+            <strong className="tabular-nums">
+              {page - inPortion.from + 1} of {inPortion.to - inPortion.from + 1}
+            </strong>
+          </span>
+          {page === inPortion.to && (
+            <button
+              onClick={() => readingPlanStore.markRead(inPortion.day)}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-bold bg-emerald-800 hover:bg-emerald-900 text-white cursor-pointer"
+            >
+              Mark today’s portion read
+            </button>
+          )}
+        </div>
+      )}
 
       <article className="card p-4 sm:p-8 bg-amber-50/40 dark:bg-stone-900">
         <header className="flex items-center justify-between text-[11px] text-stone-500 dark:text-stone-400 border-b border-amber-200/70 dark:border-stone-700 pb-2 mb-3">

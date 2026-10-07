@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { followRecitation, recitedWord } from './useRecitedWord';
+import { followChapterRecitation, followRecitation, recitedWord } from './useRecitedWord';
 
 /** A stand-in for an <audio> element: its playback position is set by the test. */
 const fakeAudio = (durationSec: number) => {
@@ -60,5 +60,26 @@ describe('followRecitation', () => {
       if (w && w !== seen[seen.length - 1]) seen.push(w);
     }
     expect(seen).toEqual([1, 2, 3, 4]);
+  });
+
+  it('follows a whole-surah recording verse by verse, announcing each new verse', async () => {
+    // Al-Ikhlas recited by Alafasy: timings from Quran.com's audio service (milliseconds from the start)
+    const verses: { key: string; from: number; to: number; words: [number, number, number][] }[] = [
+      { key: '112:1', from: 0, to: 2980, words: [[1, 0, 430], [2, 430, 700], [3, 700, 1680], [4, 1680, 2915]] },
+      { key: '112:2', from: 2980, to: 5510, words: [[1, 2915, 3965], [2, 3965, 5400]] }
+    ];
+    const audio = fakeAudio(13);
+    const announced: string[] = [];
+    followChapterRecitation(audio, verses, (key) => announced.push(key));
+    audio.dispatchEvent(new Event('playing'));
+
+    await at(audio, 0.8);
+    expect(recitedWord('112:1')).toBe(3);
+    await at(audio, 3.2);
+    expect(recitedWord('112:1')).toBeNull();
+    expect(recitedWord('112:2')).toBe(1);
+    await at(audio, 4.5);
+    expect(recitedWord('112:2')).toBe(2);
+    expect(announced).toEqual(['112:1', '112:2']);
   });
 });

@@ -1,3 +1,4 @@
+import { t } from '../i18n/strings';
 import React, { useEffect, useMemo, useState } from 'react';
 import { GraduationCap, CheckCircle2, XCircle, RotateCcw, ArrowRight, Award, Volume2, Shuffle } from 'lucide-react';
 import { QuranWord, DifficultyLevel, Language } from '../types';
@@ -202,10 +203,10 @@ export const PracticeQuiz: React.FC<PracticeQuizProps> = ({ words, onRateWord })
     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 card p-4">
       <div className="flex items-center gap-2">
         <GraduationCap className="w-5 h-5 text-emerald-800 dark:text-emerald-300" />
-        <h2 className="text-base font-bold text-stone-800 dark:text-stone-200">Quranic Vocabulary Quiz</h2>
+        <h2 className="text-base font-bold text-stone-800 dark:text-stone-200">{t('quizTitle')}</h2>
       </div>
       <div className="flex items-center gap-2 text-xs">
-        <span className="text-stone-500 dark:text-stone-400 font-medium">Quiz on:</span>
+        <span className="text-stone-500 dark:text-stone-400 font-medium">{t('quizOn')}</span>
         <select
           value={source ?? ''}
           onChange={(e) => setSource(e.target.value)}
@@ -238,7 +239,7 @@ export const PracticeQuiz: React.FC<PracticeQuizProps> = ({ words, onRateWord })
                   style === s ? 'bg-white dark:bg-stone-900 text-emerald-900 dark:text-emerald-200 shadow-sm' : 'text-stone-500 dark:text-stone-400'
                 }`}
               >
-                {s === 'mixed' ? 'Mixed' : 'Listening'}
+                {s === 'mixed' ? t('mixed') : t('listening')}
               </button>
             ))}
           </span>
@@ -249,7 +250,7 @@ export const PracticeQuiz: React.FC<PracticeQuizProps> = ({ words, onRateWord })
           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 font-semibold hover:bg-stone-200 dark:hover:bg-stone-700 disabled:opacity-50 cursor-pointer"
           title="New questions"
         >
-          <Shuffle className="w-3.5 h-3.5" /> New quiz
+          <Shuffle className="w-3.5 h-3.5" /> {t('newQuiz')}
         </button>
       </div>
     </div>
@@ -384,7 +385,7 @@ const QuizRun: React.FC<{
         </div>
 
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-stone-800 dark:text-stone-200">Quiz Completed!</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-stone-800 dark:text-stone-200">{t('quizCompleted')}</h2>
           <p className="text-stone-600 dark:text-stone-400 text-sm mt-1">
             You answered <strong>{correctCount}</strong> of <strong>{questionList.length}</strong> questions correctly ({accuracy}% accuracy).
           </p>
@@ -411,7 +412,7 @@ const QuizRun: React.FC<{
               className="px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
             >
               <Shuffle className="w-4 h-4" />
-              <span>New Quiz</span>
+              <span>{t('newQuiz')}</span>
             </button>
           ) : (
             <button
@@ -540,7 +541,7 @@ const QuizRun: React.FC<{
           <div className="p-4 bg-emerald-50/70 dark:bg-emerald-950/25 rounded-2xl border border-emerald-200 dark:border-emerald-800 text-xs text-stone-700 dark:text-stone-300 space-y-2.5 animate-fadeIn">
             <div className="flex items-center gap-1.5 font-bold text-emerald-950 dark:text-emerald-100 text-sm">
               <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-300" />
-              <span>{answeredCorrectly ? 'Correct!' : currentItem.explanation ? 'Review the Explanation:' : 'Not quite. Here it is in its verse:'}</span>
+              <span>{answeredCorrectly ? t('correct') : currentItem.explanation ? 'Review the Explanation:' : 'Not quite. Here it is in its verse:'}</span>
             </div>
             {currentItem.explanation && <p className="leading-relaxed text-stone-700 dark:text-stone-300">{currentItem.explanation}</p>}
 
@@ -585,14 +586,14 @@ const QuizRun: React.FC<{
                   : 'bg-stone-200 dark:bg-stone-800 text-stone-400 cursor-not-allowed'
               }`}
             >
-              Submit Answer
+              {t('submitAnswer')}
             </button>
           ) : (
             <button
               onClick={handleNext}
               className="px-6 py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-2xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer flex items-center gap-2"
             >
-              <span>{currentIndex < questionList.length - 1 ? 'Next Question' : 'Finish Quiz'}</span>
+              <span>{currentIndex < questionList.length - 1 ? t('nextQuestion') : t('finishQuiz')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           )}

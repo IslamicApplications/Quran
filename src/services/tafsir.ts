@@ -140,3 +140,24 @@ export const loadTafsir = async (verseKey: string, id: TafsirId): Promise<Tafsir
       : (await fetchVerseTafsirs(verseKey)).tafsirs[info.id];
   return { verseKey, id, text: found?.text ?? '', passage: found?.passage };
 };
+
+// The tafsir chosen in the tafsir panel, remembered on this device
+const TAFSIR_KEY = 'ayah-words-tafsir';
+
+export const readTafsirChoice = (language: string): TafsirId => {
+  try {
+    const id = localStorage.getItem(TAFSIR_KEY);
+    // A tafsir saved under another language (Urdu) may not be offered now
+    return tafsirsFor(language).some((t) => t.id === id) ? (id as TafsirId) : 'ibn_kathir';
+  } catch {
+    return 'ibn_kathir';
+  }
+};
+
+export const saveTafsirChoice = (id: TafsirId): void => {
+  try {
+    localStorage.setItem(TAFSIR_KEY, id);
+  } catch {
+    /* storage unavailable: keep the choice for this session */
+  }
+};

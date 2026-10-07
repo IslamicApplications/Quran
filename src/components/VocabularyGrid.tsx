@@ -180,7 +180,7 @@ export const LessonDrawer: React.FC<LessonDrawerProps> = ({
             <button onClick={() => next && onNavigate(next.id)} disabled={!next} className={navButton} aria-label="Next lesson">
               <ChevronRight className="w-5 h-5" />
             </button>
-            <span className="text-xs text-stone-500 dark:text-stone-400 tabular-nums ml-1">
+            <span className="text-xs text-stone-500 dark:text-stone-400 tabular-nums ms-1">
               {index + 1} of {words.length}
             </span>
           </div>

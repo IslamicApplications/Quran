@@ -209,7 +209,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {isMobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Navigation">
           <div className="absolute inset-0 bg-stone-950/40 backdrop-blur-sm animate-fadeIn" onClick={onCloseMobile} />
-          <div className="absolute inset-y-0 left-0 w-[85%] max-w-xs bg-[var(--surface-page)] shadow-2xl flex flex-col animate-slide-in-left">
+          <div className="absolute inset-y-0 start-0 w-[85%] max-w-xs bg-[var(--surface-page)] shadow-2xl flex flex-col animate-slide-in-left">
             <div className="h-16 px-4 flex items-center justify-between border-b border-stone-200/70 dark:border-stone-700/70">
               <div className="flex items-center gap-2.5">
                 <BrandMark size="sm" />

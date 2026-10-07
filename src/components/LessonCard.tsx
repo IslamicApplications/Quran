@@ -207,7 +207,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
         </div>
 
         {/* Section 2: General Lexical Meaning */}
-        <div className="relative rounded-2xl p-4 sm:p-5 bg-gradient-to-br from-amber-50 dark:from-amber-950/30 to-orange-50/40 dark:to-orange-950/30 ring-1 ring-amber-200/60 dark:ring-amber-900/60 pl-5 sm:pl-6 before:absolute before:left-0 before:top-4 before:bottom-4 before:w-1 before:rounded-full before:bg-amber-400">
+        <div className="relative rounded-2xl p-4 sm:p-5 bg-gradient-to-br from-amber-50 dark:from-amber-950/30 to-orange-50/40 dark:to-orange-950/30 ring-1 ring-amber-200/60 dark:ring-amber-900/60 ps-5 sm:ps-6 before:absolute before:start-0 before:top-4 before:bottom-4 before:w-1 before:rounded-full before:bg-amber-400">
           <div className="flex items-center justify-between gap-2 mb-1">
             <div className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
               <span>Plain-Language Meaning</span>
@@ -320,7 +320,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
               <span className="font-semibold text-emerald-900 dark:text-emerald-200 font-quran-amiri text-sm">
                 {explanation.languageNote.rootArabic || word.rootArabic}
               </span>
-              <span className="text-stone-600 dark:text-stone-400 text-xs ml-1.5">
+              <span className="text-stone-600 dark:text-stone-400 text-xs ms-1.5">
                 ({explanation.languageNote.rootMeaning || word.rootGeneralMeaning})
               </span>
             </div>
@@ -489,7 +489,7 @@ export const LessonCard: React.FC<LessonCardProps> = ({
               {/* Reveal Answer Manual Toggle */}
               <button
                 onClick={() => setShowAnswer(!showAnswer)}
-                className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 dark:hover:text-emerald-100 flex items-center gap-1.5 cursor-pointer ml-auto"
+                className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 dark:hover:text-emerald-100 flex items-center gap-1.5 cursor-pointer ms-auto"
               >
                 {showAnswer ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 <span>{showAnswer ? 'Hide Explanation' : 'Reveal Answer & Explanation'}</span>

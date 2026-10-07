@@ -15,7 +15,9 @@ import {
   Layers,
   Eye,
   X as XIcon,
-  Palette
+  Palette,
+  Type,
+  AudioLines
 } from 'lucide-react';
 import { SURAH_LIST } from '../data/surahList';
 import {
@@ -32,17 +34,18 @@ import {
 } from '../services/quranCom';
 import { AppSettings } from '../types';
 import { useKnownLemmas, knownLemmasStore } from '../hooks/useKnownLemmas';
-import { followRecitation } from '../hooks/useRecitedWord';
+import { followRecitation, followChapterRecitation } from '../hooks/useRecitedWord';
 import { LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
 import { ARABIC_SIZES, AudioMode, AyahWords, BISMILLAH, Segmented, TajweedKey, ToggleChip, WordSheet } from './ReaderParts';
 import { ReciterSelect } from './ReciterSelect';
-import { reciterAudioUrl, reciterName, reciterStore, useReciter } from '../services/reciters';
+import { reciterAudioUrl, reciterName, reciterStore, useReciter, hasChapterAudio, fetchChapterRecording } from '../services/reciters';
 import { JuzList, JuzView, juzRangeLabel, readLastJuz } from './JuzReader';
 import { TafsirPanel } from './TafsirPanel';
 import { SurahInfoCard } from './SurahInfoCard';
 import { t } from '../i18n/strings';
 import { TranslationSelect } from './TranslationSelect';
 import { DownloadButton } from './DownloadButton';
+import { SCRIPTS, readScript, saveScript, readTransliteration, saveTransliteration, type QuranScript } from '../services/script';
 import { downloadSurah } from '../services/offline';
 import { readTajweedPreference, saveTajweedPreference } from '../services/tajweed';
 import { MushafPageView, readLastMushafPage } from './MushafPageView';
@@ -75,6 +78,22 @@ const readLastSurah = (): number | null => {
     return n >= 1 && n <= 114 ? n : null;
   } catch {
     return null;
+  }
+};
+
+const CONTINUOUS_KEY = 'ayah-words-continuous';
+const readContinuous = (): boolean => {
+  try {
+    return localStorage.getItem(CONTINUOUS_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+const saveContinuous = (on: boolean) => {
+  try {
+    localStorage.setItem(CONTINUOUS_KEY, on ? '1' : '0');
+  } catch {
+    /* per-viewer convenience only */
   }
 };
 
@@ -195,7 +214,7 @@ const SurahIndex: React.FC<{
               <div className="text-[11px] font-semibold text-emerald-200 uppercase tracking-wide">Continue reading</div>
               <div className="font-bold">
                 Juz {lastJuz}{' '}
-                <span className="font-quran-amiri font-normal text-amber-200 ml-1">الجزء {lastJuz.toLocaleString('ar-EG')}</span>
+                <span className="font-quran-amiri font-normal text-amber-200 ms-1">الجزء {lastJuz.toLocaleString('ar-EG')}</span>
               </div>
               <div className="text-xs text-emerald-100/80 truncate">{juzRangeLabel(lastJuz)}</div>
             </div>
@@ -212,7 +231,7 @@ const SurahIndex: React.FC<{
               <div className="text-[11px] font-semibold text-emerald-200 uppercase tracking-wide">Continue reading</div>
               <div className="font-bold">
                 {last}. {SURAH_LIST[last - 1].nameTransliteration}{' '}
-                <span className="font-quran-amiri font-normal text-amber-200 ml-1">{SURAH_LIST[last - 1].nameArabic}</span>
+                <span className="font-quran-amiri font-normal text-amber-200 ms-1">{SURAH_LIST[last - 1].nameArabic}</span>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -225,13 +244,13 @@ const SurahIndex: React.FC<{
         {by === 'surah' && (
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
               <input
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search surah: Mulk, 67, الملك"
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-950/60 ring-1 ring-stone-200 dark:ring-stone-700 text-sm focus:bg-white dark:focus:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-950/60 ring-1 ring-stone-200 dark:ring-stone-700 text-sm focus:bg-white dark:focus:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-600"
               />
             </div>
             <div className="flex gap-2">
@@ -314,6 +333,9 @@ const SurahView: React.FC<
   const [highlight, setHighlight] = useState(true);
   const [showTranslation, setShowTranslation] = useState(true);
   const [tajweed, setTajweed] = useState(readTajweedPreference);
+  const [script, setScriptState] = useState<QuranScript>(readScript);
+  const [showTransliteration, setShowTransliteration] = useState(readTransliteration);
+  const [continuous, setContinuous] = useState(readContinuous);
   const [audioMode, setAudioMode] = useState<AudioMode>('arabic');
   const [playing, setPlaying] = useState<{ key: string; part: 'arabic' | 'english'; rep: number } | null>(null);
   const [practice, setPractice] = useState<PracticeMode>('read');
@@ -418,8 +440,43 @@ const SurahView: React.FC<
     if (ayah >= verses.length - 2 && nextPage !== null) loadMore();
   }, [playing, verses.length, nextPage, loadMore]);
 
+  /**
+   * Plays the whole-surah recording from `ayah`, following it verse by verse; falls back to verse-by-verse files
+   * when the recording can't be had. The start is set in the address (#t=seconds), so it begins at that verse.
+   */
+  const playChapter = useCallback(
+    async (ayah: number) => {
+      window.clearTimeout(gapTimer.current);
+      const reciter = reciterStore.get();
+      let recording;
+      try {
+        recording = await fetchChapterRecording(reciter, surah);
+      } catch {
+        return playVerse(ayah, 'arabic');
+      }
+      const startKey = `${surah}:${ayah}`;
+      const from = recording.verses.find((v) => v.key === startKey)?.from ?? 0;
+      const audio = playAudio(from ? `${recording.url}#t=${(from / 1000).toFixed(2)}` : recording.url);
+      audioRef.current = audio;
+      setPlaying({ key: startKey, part: 'arabic', rep: 1 });
+      followChapterRecitation(audio, recording.verses, (key) => {
+        if (audioRef.current !== audio) return;
+        setPlaying({ key, part: 'arabic', rep: 1 });
+        document.getElementById(`ayah-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      audio.onpause = () => audioRef.current === audio && !audio.ended && setPlaying(null);
+      audio.onerror = () => audioRef.current === audio && setPlaying(null);
+      audio.onended = () => audioRef.current === audio && setPlaying(null);
+    },
+    [surah, playVerse]
+  );
+
+  // The whole-surah recording plays in Read mode, in Arabic, for reciters who have one
+  const gapless = continuous && practice === 'read' && audioMode === 'arabic' && hasChapterAudio(reciter);
+
   const toggleVerse = (ayah: number) => {
     if (playing?.key === `${surah}:${ayah}`) return stopAudio();
+    if (gapless) return playChapter(ayah);
     playVerse(ayah, audioMode === 'english' && practice !== 'memorize' ? 'english' : 'arabic');
   };
 
@@ -446,7 +503,7 @@ const SurahView: React.FC<
       {onSelectPage && verses[0]?.page ? (
         <button
           onClick={() => onSelectPage(verses[0].page)}
-          className="ml-4 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 dark:hover:text-emerald-100 cursor-pointer"
+          className="ms-4 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 dark:hover:text-emerald-100 cursor-pointer"
         >
           <BookOpenText className="w-4 h-4" /> Open on Mushaf page {verses[0].page}
         </button>
@@ -512,7 +569,7 @@ const SurahView: React.FC<
                   key={lemma}
                   onClick={() => knownLemmasStore.add(lemma)}
                   title="Mark as known"
-                  className="group inline-flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 ring-1 ring-amber-200 dark:ring-amber-900/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/25 hover:ring-emerald-300 dark:hover:ring-emerald-700 cursor-pointer"
+                  className="group inline-flex items-center gap-2 ps-3 pe-2 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 ring-1 ring-amber-200 dark:ring-amber-900/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/25 hover:ring-emerald-300 dark:hover:ring-emerald-700 cursor-pointer"
                 >
                   <span className="font-quran-amiri text-lg font-bold text-stone-900 dark:text-stone-100">{lemma}</span>
                   <span className="text-[11px] text-stone-500 dark:text-stone-400 tabular-nums">{n}×</span>
@@ -538,14 +595,34 @@ const SurahView: React.FC<
         <ToggleChip active={showTranslation} onClick={() => setShowTranslation(!showTranslation)} icon={Languages} label={t('translation')} />
         {showTranslation && <TranslationSelect language={contentLanguage()} />}
         <ToggleChip
-          active={tajweed}
+          active={showTransliteration}
           onClick={() => {
-            setTajweed(!tajweed);
-            saveTajweedPreference(!tajweed);
+            setShowTransliteration(!showTransliteration);
+            saveTransliteration(!showTransliteration);
           }}
-          icon={Palette}
-          label={t('tajweed')}
+          icon={Type}
+          label={t('transliteration')}
         />
+        <Segmented
+          value={script}
+          onChange={(s) => {
+            setScriptState(s);
+            saveScript(s);
+          }}
+          options={SCRIPTS}
+        />
+        {/* Quran.com marks tajweed on the Uthmani text only */}
+        {script === 'uthmani' && (
+          <ToggleChip
+            active={tajweed}
+            onClick={() => {
+              setTajweed(!tajweed);
+              saveTajweedPreference(!tajweed);
+            }}
+            icon={Palette}
+            label={t('tajweed')}
+          />
+        )}
         <Segmented
           value={practice}
           onChange={changePractice}
@@ -555,9 +632,28 @@ const SurahView: React.FC<
             { id: 'understand', label: t('understand') }
           ]}
         />
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="ms-auto flex flex-wrap items-center gap-2">
           {/* A verse playing in Arabic restarts in the new voice */}
-          <ReciterSelect onChange={() => playing?.part === 'arabic' && playVerse(Number(playing.key.split(':')[1]), 'arabic', playing.rep)} />
+          <ReciterSelect
+            onChange={() => {
+              if (playing?.part !== 'arabic') return;
+              const ayah = Number(playing.key.split(':')[1]);
+              if (gapless && hasChapterAudio(reciterStore.get())) playChapter(ayah);
+              else playVerse(ayah, 'arabic', playing.rep);
+            }}
+          />
+          {practice === 'read' && audioMode === 'arabic' && hasChapterAudio(reciter) && (
+            <ToggleChip
+              active={continuous}
+              onClick={() => {
+                stopAudio();
+                setContinuous(!continuous);
+                saveContinuous(!continuous);
+              }}
+              icon={AudioLines}
+              label={t('continuous')}
+            />
+          )}
           {practice !== 'memorize' && (
           <Segmented
             value={audioMode}
@@ -578,6 +674,8 @@ const SurahView: React.FC<
                 ? stopAudio()
                 : practice === 'memorize'
                 ? playVerse(memorize.from, 'arabic')
+                : gapless
+                ? playChapter(1)
                 : playVerse(1, audioMode === 'english' ? 'english' : 'arabic')
             }
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold cursor-pointer"
@@ -594,7 +692,7 @@ const SurahView: React.FC<
         </div>
       </div>
 
-      {tajweed && <TajweedKey />}
+      {tajweed && script === 'uthmani' && <TajweedKey />}
 
       {practice === 'memorize' && (
         <MemorizePanel
@@ -679,7 +777,11 @@ const SurahView: React.FC<
                       conceal={practice === 'memorize' && memorize.hideText && !uncovered.has(v.key)}
                       onReveal={() => setUncovered((prev) => new Set(prev).add(v.key))}
                       tajweed={tajweed}
+                      script={script}
                     />
+                    {showTransliteration && v.transliteration && (
+                      <p className="text-sm italic text-emerald-800/80 dark:text-emerald-300/80 leading-relaxed">{v.transliteration}</p>
+                    )}
                     {practice === 'understand' ? (
                       revealed.has(v.key) ? (
                         <div className="space-y-2">
@@ -726,7 +828,7 @@ const SurahView: React.FC<
                     ) : showTranslation && (
                       <p dir="auto" className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
                         {playing?.key === v.key && playing.part === 'english' && (
-                          <span className="inline-block mr-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                          <span className="inline-block me-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
                             Playing
                           </span>
                         )}

@@ -6,6 +6,7 @@ import { useKnownLemmas } from '../hooks/useKnownLemmas';
 import { buildStages } from './courseWords';
 import { useAsync } from './QuranWordBits';
 import { t } from '../i18n/strings';
+import { ReadingPlanCard } from './ReadingPlanCard';
 
 interface TodayPlanProps {
   dueReviewCount: number;
@@ -13,6 +14,7 @@ interface TodayPlanProps {
   onLearnCourseWords: () => void;
   onStudySurah: (surah: number) => void;
   onReadSurah: (surah: number) => void;
+  onOpenPage: (page: number) => void;
 }
 
 const loadPlanData = async () => {
@@ -24,7 +26,7 @@ const loadPlanData = async () => {
  * Three next steps for today: the reviews that are due, the next words of the 85% Course, and the surah the
  * learner is closest to understanding in full (short surahs count, since any word left is a word to learn).
  */
-export const TodayPlan: React.FC<TodayPlanProps> = ({ dueReviewCount, onReview, onLearnCourseWords, onStudySurah, onReadSurah }) => {
+export const TodayPlan: React.FC<TodayPlanProps> = ({ dueReviewCount, onReview, onLearnCourseWords, onStudySurah, onReadSurah, onOpenPage }) => {
   const { data, error } = useAsync(loadPlanData, []);
   const known = useKnownLemmas();
 
@@ -54,6 +56,7 @@ export const TodayPlan: React.FC<TodayPlanProps> = ({ dueReviewCount, onReview, 
         <CalendarCheck className="w-4 h-4 text-emerald-700 dark:text-emerald-300" /> {t('todaysPlan')}
       </h2>
       <div className="divide-y divide-stone-100 dark:divide-stone-800">
+        <ReadingPlanCard onOpenPage={onOpenPage} />
         <div className={row}>
           <p className="text-sm text-stone-700 dark:text-stone-300 min-w-0">
             {t('dueLine')(dueReviewCount)}

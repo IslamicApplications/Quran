@@ -6,8 +6,9 @@
  */
 import { useSyncExternalStore } from 'react';
 import { SURAH_LIST } from '../data/surahList';
-import { fetchChapterPage, getSurahMorphology, getSurahVocab, getRecitationTimings, DEFAULT_RECITATION_ID } from './quranCom';
+import { contentLanguage, fetchChapterPage, getSurahMorphology, getSurahVocab, getRecitationTimings, DEFAULT_RECITATION_ID } from './quranCom';
 import { fetchSurahInfo } from './surahInfo';
+import { loadTafsir, readTafsirChoice } from './tafsir';
 import { fetchJuz } from './ummahApi';
 import { reciterAudioUrl, reciterName, reciterStore, RECITERS, type ReciterId } from './reciters';
 
@@ -112,7 +113,8 @@ const requestPersistence = () => navigator.storage?.persist?.().catch(() => fals
 
 /**
  * Saves a surah: its verse pages (text, translation and word data in the current language), its word lists and
- * introduction, and every verse recited by the chosen reciter. Resolves with the number of files that failed.
+ * introduction, every verse recited by the chosen reciter, and the chosen tafsir of every verse. Resolves with the
+ * number of files that failed.
  */
 export const downloadSurah = async (surah: number, onProgress: (p: Progress) => void, signal: AbortSignal) => {
   requestPersistence();
@@ -125,7 +127,9 @@ export const downloadSurah = async (surah: number, onProgress: (p: Progress) => 
     () => getSurahVocab(),
     () => fetchSurahInfo(surah),
     ...Array.from({ length: pages }, (_, i) => () => fetchChapterPage(surah, i + 1, READER_PAGE_SIZE)),
-    ...verseTasks(keys, reciter)
+    ...verseTasks(keys, reciter),
+    // The tafsir chosen in the tafsir panel, for every verse
+    ...keys.map((key) => () => loadTafsir(key, readTafsirChoice(contentLanguage())))
   ];
   let done = 0;
   onProgress({ done, total: tasks.length });

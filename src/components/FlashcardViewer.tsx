@@ -1,3 +1,4 @@
+import { t } from '../i18n/strings';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { RotateCw, ChevronLeft, ChevronRight, CheckCircle2, Layers } from 'lucide-react';
 import { QuranWord, DifficultyLevel, Language, AppSettings, UserProgress, StudyList } from '../types';
@@ -12,11 +13,11 @@ import { useKnownLemmas } from '../hooks/useKnownLemmas';
 import { loadSurahWords } from '../services/surahWords';
 
 const RATINGS = [
-  { confidence: 1, label: 'Forgot', style: 'bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-900 dark:text-rose-200 border-rose-200 dark:border-rose-800' },
-  { confidence: 2, label: 'Hard', style: 'bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-900/25 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-900/60' },
-  { confidence: 3, label: 'Okay', style: 'bg-stone-50 dark:bg-stone-900 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-800 dark:text-stone-200 border-stone-200 dark:border-stone-700' },
-  { confidence: 4, label: 'Good', style: 'bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/40 text-sky-900 dark:text-sky-200 border-sky-200 dark:border-sky-800' },
-  { confidence: 5, label: 'Easy', style: 'bg-emerald-50 dark:bg-emerald-950/25 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800' }
+  { confidence: 1, labelKey: 'forgot' as const, style: 'bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-900 dark:text-rose-200 border-rose-200 dark:border-rose-800' },
+  { confidence: 2, labelKey: 'hard' as const, style: 'bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-900/25 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-900/60' },
+  { confidence: 3, labelKey: 'okay' as const, style: 'bg-stone-50 dark:bg-stone-900 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-800 dark:text-stone-200 border-stone-200 dark:border-stone-700' },
+  { confidence: 4, labelKey: 'good' as const, style: 'bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/40 text-sky-900 dark:text-sky-200 border-sky-200 dark:border-sky-800' },
+  { confidence: 5, labelKey: 'easy' as const, style: 'bg-emerald-50 dark:bg-emerald-950/25 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800' }
 ];
 
 const daysLabel = (days: number) => (days === 1 ? '1 day' : `${days} days`);
@@ -333,18 +334,18 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
     <div className="flex flex-col sm:flex-row items-center justify-between gap-3 card p-4">
       <div className="flex items-center gap-2">
         <Layers className="w-5 h-5 text-emerald-800 dark:text-emerald-300" />
-        <h2 className="text-base font-bold text-stone-800 dark:text-stone-200">Spaced Repetition Flashcards</h2>
+        <h2 className="text-base font-bold text-stone-800 dark:text-stone-200">{t('flashcardsTitle')}</h2>
       </div>
 
       {/* Filter dropdown */}
       <div className="flex items-center gap-2 text-xs">
-        <span className="text-stone-500 dark:text-stone-400 font-medium">Deck:</span>
+        <span className="text-stone-500 dark:text-stone-400 font-medium">{t('deck')}</span>
         <select
           value={filterMode}
           onChange={(e) => setFilterMode(e.target.value)}
           className="px-2.5 py-1.5 bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg text-stone-700 dark:text-stone-300 font-medium focus:outline-none focus:ring-1 focus:ring-emerald-600 cursor-pointer max-w-[16rem]"
         >
-          <option value="due">Due for Review Today</option>
+          <option value="due">{t('dueToday')}</option>
           <optgroup label="85% Course words">
             {stages.length === 0 && <option disabled>Loading…</option>}
             {stages.map((stage) => (
@@ -411,7 +412,7 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
             <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 rounded-full flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-stone-800 dark:text-stone-200">All Reviews Completed!</h3>
+            <h3 className="text-xl font-bold text-stone-800 dark:text-stone-200">{t('allDone')}</h3>
             <p className="text-sm text-stone-600 dark:text-stone-400">
               {filterMode === 'due'
                 ? 'No flashcards are due for spaced repetition right now. Great job keeping up with your studies!'
@@ -448,7 +449,7 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
           <span>
             Card {currentIndex + 1} of {cards.length}
             {currentCard.kind === 'course' && !progress && (
-              <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">New</span>
+              <span className="ms-2 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">New</span>
             )}
           </span>
           <span className="flex items-center gap-1 text-stone-400">
@@ -486,7 +487,7 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
               )}
               <span className="flex items-center gap-1 text-emerald-800 dark:text-emerald-300 font-medium">
                 <RotateCw className="w-3.5 h-3.5" />
-                <span>Click to Flip</span>
+                <span>{t('clickToFlip')}</span>
               </span>
             </div>
           </div>
@@ -515,7 +516,7 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
       {/* SRS Confidence Rating Buttons (Visible when flipped) */}
       {isFlipped && hasRatedCurrent && (
         <div className="card p-4 text-center text-xs text-stone-600 dark:text-stone-400 animate-fadeIn">
-          <CheckCircle2 className="w-4 h-4 inline-block mr-1.5 -mt-0.5 text-emerald-700 dark:text-emerald-300" />
+          <CheckCircle2 className="w-4 h-4 inline-block me-1.5 -mt-0.5 text-emerald-700 dark:text-emerald-300" />
           Saved. Next review in {daysLabel(progress?.intervalDays ?? 1)}.
           {currentIndex === cards.length - 1 && ' That was the last card in this deck.'}
         </div>
@@ -536,7 +537,7 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
                 }`}
               >
                 <span>
-                  {r.confidence} - {r.label}
+                  {r.confidence} - {t(r.labelKey)}
                 </span>
                 <span className="text-[10px] font-normal opacity-80">
                   Review in {daysLabel(calculateNextSRSReview(progress, currentCard.id, r.confidence, r.confidence >= 3).intervalDays)}
@@ -559,7 +560,7 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
           }`}
         >
           <ChevronLeft className="w-4 h-4" />
-          <span>Previous Card</span>
+          <span>{t('previousCard')}</span>
         </button>
 
         <button
@@ -567,7 +568,7 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
           className="px-5 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
         >
           <RotateCw className="w-3.5 h-3.5" />
-          <span>{isFlipped ? 'View Front' : 'Flip to Reveal'}</span>
+          <span>{isFlipped ? 'View Front' : t('flipToReveal')}</span>
         </button>
 
         <button
@@ -579,7 +580,7 @@ export const FlashcardViewer: React.FC<FlashcardViewerProps> = ({
               : 'bg-stone-100 dark:bg-stone-800 text-stone-400 cursor-not-allowed'
           }`}
         >
-          <span>Next Card</span>
+          <span>{t('nextCard')}</span>
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>

@@ -195,6 +195,42 @@
   zoom: 1;
 }
 
+/* Tajweed colours, grouped as printed tajweed Mushafs group them (src/services/tajweed.ts) */
+:root {
+  --tj-silent: #8a8f98;
+  --tj-madd-2: #c2410c;
+  --tj-madd-246: #ea580c;
+  --tj-madd-45: #dc2626;
+  --tj-madd-6: #9f1239;
+  --tj-ghunnah: #15803d;
+  --tj-ikhfa: #16a34a;
+  --tj-idgham: #0f766e;
+  --tj-iqlab: #0369a1;
+  --tj-qalqalah: #1d4ed8;
+}
+.dark {
+  --tj-silent: #9ca3af;
+  --tj-madd-2: #fb923c;
+  --tj-madd-246: #fdba74;
+  --tj-madd-45: #f87171;
+  --tj-madd-6: #fb7185;
+  --tj-ghunnah: #4ade80;
+  --tj-ikhfa: #86efac;
+  --tj-idgham: #2dd4bf;
+  --tj-iqlab: #38bdf8;
+  --tj-qalqalah: #93c5fd;
+}
+.tj-silent { color: var(--tj-silent); }
+.tj-madd-2 { color: var(--tj-madd-2); }
+.tj-madd-246 { color: var(--tj-madd-246); }
+.tj-madd-45 { color: var(--tj-madd-45); }
+.tj-madd-6 { color: var(--tj-madd-6); }
+.tj-ghunnah { color: var(--tj-ghunnah); }
+.tj-ikhfa { color: var(--tj-ikhfa); }
+.tj-idgham { color: var(--tj-idgham); }
+.tj-iqlab { color: var(--tj-iqlab); }
+.tj-qalqalah { color: var(--tj-qalqalah); }
+
 /* Fixed samples of each font, for choosing between them in Settings */
 .font-sample-amiri {
   font-family: 'Amiri', serif;

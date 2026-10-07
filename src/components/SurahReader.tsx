@@ -14,7 +14,8 @@ import {
   ScrollText,
   Layers,
   Eye,
-  X as XIcon
+  X as XIcon,
+  Palette
 } from 'lucide-react';
 import { SURAH_LIST } from '../data/surahList';
 import {
@@ -32,12 +33,15 @@ import { AppSettings } from '../types';
 import { useKnownLemmas, knownLemmasStore } from '../hooks/useKnownLemmas';
 import { followRecitation } from '../hooks/useRecitedWord';
 import { LoadingBlock, ErrorBlock, useAsync } from './QuranWordBits';
-import { ARABIC_SIZES, AudioMode, AyahWords, BISMILLAH, Segmented, ToggleChip, WordSheet } from './ReaderParts';
+import { ARABIC_SIZES, AudioMode, AyahWords, BISMILLAH, Segmented, TajweedKey, ToggleChip, WordSheet } from './ReaderParts';
 import { ReciterSelect } from './ReciterSelect';
 import { reciterAudioUrl, reciterName, reciterStore, useReciter } from '../services/reciters';
 import { JuzList, JuzView, juzRangeLabel, readLastJuz } from './JuzReader';
 import { TafsirPanel } from './TafsirPanel';
 import { SurahInfoCard } from './SurahInfoCard';
+import { t } from '../i18n/strings';
+import { readTajweedPreference, saveTajweedPreference } from '../services/tajweed';
+import { MushafPageView, readLastMushafPage } from './MushafPageView';
 import { MemorizePanel, UnderstandPanel, defaultMemorize, type MemorizeSettings, type PracticeMode } from './PracticeControls';
 import { VerseBookmarkButton, VerseNote } from './VerseBookmark';
 import { understoodVersesStore, useUnderstoodVerses } from '../hooks/useVerseMarks';
@@ -47,6 +51,9 @@ interface SurahReaderProps {
   onSelectSurah: (surah: number | undefined) => void;
   juz?: number;
   onSelectJuz: (juz: number | undefined) => void;
+  /** A page of the Mushaf open in the page view */
+  page?: number;
+  onSelectPage?: (page: number | undefined) => void;
   settings: AppSettings;
   onOpenVerse?: (verseKey: string) => void;
   onOpenRoot?: (root: string) => void;
@@ -77,11 +84,19 @@ export const SurahReader: React.FC<SurahReaderProps> = (props) => {
   if (vocab.loading) return <div className="card"><LoadingBlock label="Loading surahs…" /></div>;
   if (vocab.error || !vocab.data) return <div className="card"><ErrorBlock onRetry={vocab.retry} /></div>;
 
+  if (props.page && props.onSelectPage)
+    return <MushafPageView page={props.page} onSelectPage={props.onSelectPage} onOpenVerse={props.onOpenVerse} />;
   if (props.juz) return <JuzView key={props.juz} {...props} juz={props.juz} known={known} />;
   return props.surah ? (
     <SurahView key={props.surah} {...props} surah={props.surah} vocab={vocab.data[props.surah - 1]} known={known} />
   ) : (
-    <SurahIndex vocab={vocab.data} known={known} onSelect={props.onSelectSurah} onSelectJuz={props.onSelectJuz} />
+    <SurahIndex
+      vocab={vocab.data}
+      known={known}
+      onSelect={props.onSelectSurah}
+      onSelectJuz={props.onSelectJuz}
+      onSelectPage={props.onSelectPage}
+    />
   );
 };
 
@@ -92,7 +107,8 @@ const SurahIndex: React.FC<{
   known: ReadonlySet<string>;
   onSelect: (surah: number) => void;
   onSelectJuz: (juz: number) => void;
-}> = ({ vocab, known, onSelect, onSelectJuz }) => {
+  onSelectPage?: (page: number) => void;
+}> = ({ vocab, known, onSelect, onSelectJuz, onSelectPage }) => {
   const [by, setByState] = useState<'surah' | 'juz'>(() => {
     try {
       return localStorage.getItem(INDEX_KEY) === 'juz' ? 'juz' : 'surah';
@@ -146,14 +162,25 @@ const SurahIndex: React.FC<{
           </div>
         </div>
 
-        <Segmented
-          value={by}
-          onChange={setBy}
-          options={[
-            { id: 'surah', label: 'By surah' },
-            { id: 'juz', label: 'By juz' }
-          ]}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Segmented
+            value={by}
+            onChange={setBy}
+            options={[
+              { id: 'surah', label: 'By surah' },
+              { id: 'juz', label: 'By juz' }
+            ]}
+          />
+          {onSelectPage && (
+            <button
+              onClick={() => onSelectPage(readLastMushafPage() ?? 1)}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-semibold bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 cursor-pointer"
+            >
+              <BookOpenText className="w-3.5 h-3.5" /> Mushaf pages
+              {readLastMushafPage() && <span className="text-stone-400 tabular-nums">· page {readLastMushafPage()}</span>}
+            </button>
+          )}
+        </div>
 
         {by === 'juz' && lastJuz && (
           <button
@@ -273,7 +300,7 @@ const SurahIndex: React.FC<{
 
 const SurahView: React.FC<
   SurahReaderProps & { surah: number; vocab: SurahVocab; known: ReadonlySet<string> }
-> = ({ surah, vocab, known, onSelectSurah, settings, onOpenVerse, onOpenRoot, onStudyWords }) => {
+> = ({ surah, vocab, known, onSelectSurah, settings, onOpenVerse, onOpenRoot, onStudyWords, onSelectPage }) => {
   const info = SURAH_LIST[surah - 1];
   const [verses, setVerses] = useState<QVerse[]>([]);
   const [nextPage, setNextPage] = useState<number | null>(1);
@@ -282,6 +309,7 @@ const SurahView: React.FC<
 
   const [highlight, setHighlight] = useState(true);
   const [showTranslation, setShowTranslation] = useState(true);
+  const [tajweed, setTajweed] = useState(readTajweedPreference);
   const [audioMode, setAudioMode] = useState<AudioMode>('arabic');
   const [playing, setPlaying] = useState<{ key: string; part: 'arabic' | 'english'; rep: number } | null>(null);
   const [practice, setPractice] = useState<PracticeMode>('read');
@@ -409,8 +437,16 @@ const SurahView: React.FC<
         onClick={() => onSelectSurah(undefined)}
         className="inline-flex items-center gap-1.5 text-sm font-semibold text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 cursor-pointer"
       >
-        <ArrowLeft className="w-4 h-4" /> All surahs
+        <ArrowLeft className="w-4 h-4" /> {t('allSurahs')}
       </button>
+      {onSelectPage && verses[0]?.page ? (
+        <button
+          onClick={() => onSelectPage(verses[0].page)}
+          className="ml-4 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 dark:hover:text-emerald-100 cursor-pointer"
+        >
+          <BookOpenText className="w-4 h-4" /> Open on Mushaf page {verses[0].page}
+        </button>
+      ) : null}
 
       {/* Surah header */}
       <section className="verse-panel rounded-3xl p-6 sm:p-8 text-center space-y-4">
@@ -488,15 +524,24 @@ const SurahView: React.FC<
 
       {/* Reading controls */}
       <div className="glass sticky top-16 z-20 -mx-1 px-1 py-2 flex flex-wrap items-center gap-2 rounded-2xl">
-        <ToggleChip active={highlight} onClick={() => setHighlight(!highlight)} icon={Highlighter} label="Highlight unknown" />
-        <ToggleChip active={showTranslation} onClick={() => setShowTranslation(!showTranslation)} icon={Languages} label="Translation" />
+        <ToggleChip active={highlight} onClick={() => setHighlight(!highlight)} icon={Highlighter} label={t('highlightUnknown')} />
+        <ToggleChip active={showTranslation} onClick={() => setShowTranslation(!showTranslation)} icon={Languages} label={t('translation')} />
+        <ToggleChip
+          active={tajweed}
+          onClick={() => {
+            setTajweed(!tajweed);
+            saveTajweedPreference(!tajweed);
+          }}
+          icon={Palette}
+          label={t('tajweed')}
+        />
         <Segmented
           value={practice}
           onChange={changePractice}
           options={[
-            { id: 'read', label: 'Read' },
-            { id: 'memorize', label: 'Memorize' },
-            { id: 'understand', label: 'Understand' }
+            { id: 'read', label: t('read') },
+            { id: 'memorize', label: t('memorize') },
+            { id: 'understand', label: t('understand') }
           ]}
         />
         <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -528,15 +573,17 @@ const SurahView: React.FC<
           >
             {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
             {playing
-              ? 'Stop'
+              ? t('stop')
               : practice === 'memorize'
               ? memorize.from === memorize.to
-                ? `Play verse ${memorize.from}`
-                : `Play verses ${memorize.from}–${memorize.to}`
-              : 'Play surah'}
+                ? t('playVerse')(memorize.from)
+                : t('playVerses')(memorize.from, memorize.to)
+              : t('playSurah')}
           </button>
         </div>
       </div>
+
+      {tajweed && <TajweedKey />}
 
       {practice === 'memorize' && (
         <MemorizePanel
@@ -620,6 +667,7 @@ const SurahView: React.FC<
                       onSelect={setSelected}
                       conceal={practice === 'memorize' && memorize.hideText && !uncovered.has(v.key)}
                       onReveal={() => setUncovered((prev) => new Set(prev).add(v.key))}
+                      tajweed={tajweed}
                     />
                     {practice === 'understand' ? (
                       revealed.has(v.key) ? (

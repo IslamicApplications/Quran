@@ -4,9 +4,11 @@ import { DifficultyLevel, Language, AppSettings, UserProgress, StudyList } from 
 import { StorageService, getTodayDateString, isDueForReview } from './services/storage';
 import { searchQuranWords } from './services/quranApi';
 import { setContentLanguage } from './services/quranCom';
+import { setUiLanguage, t } from './i18n/strings';
 import { Header, ActiveTab } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { Hero } from './components/Hero';
+import { TodayPlan } from './components/TodayPlan';
 import { SearchBar } from './components/SearchBar';
 import { VocabularyGrid, LessonDrawer } from './components/VocabularyGrid';
 import { SettingsModal } from './components/SettingsModal';
@@ -80,6 +82,12 @@ const juzFromHash = (): number | undefined => {
 // Arabic text size from Settings, relative to the default "Large"
 const ARABIC_ZOOM: Record<AppSettings['arabicFontSize'], number> = { md: 0.9, lg: 1, xl: 1.15, '2xl': 1.3 };
 
+const pageFromHash = (): number | undefined => {
+  const [tab, kind, n] = hashParts();
+  const page = Number(n);
+  return tab === 'reader' && kind === 'page' && page >= 1 && page <= 604 ? page : undefined;
+};
+
 const TabFallback = () => (
   <div className="flex items-center justify-center py-24 text-stone-400">
     <Loader2 className="w-6 h-6 animate-spin" />
@@ -95,11 +103,16 @@ export function App() {
   const online = useOnline();
   // Verse translations and word meanings load in the chosen language (set before any tab fetches)
   setContentLanguage(settings.language);
+  setUiLanguage(settings.language);
+  useEffect(() => {
+    document.documentElement.lang = settings.language;
+  }, [settings.language]);
   const [flashcardDeck, setFlashcardDeck] = useState<string>(NEXT_COURSE_DECK);
   const [wbwVerseKey, setWbwVerseKey] = useState<string>('1:2');
   const [rootDictRoot, setRootDictRoot] = useState<string | undefined>(undefined);
   const [readerSurah, setReaderSurah] = useState<number | undefined>(surahFromHash);
   const [readerJuz, setReaderJuz] = useState<number | undefined>(juzFromHash);
+  const [readerPage, setReaderPage] = useState<number | undefined>(pageFromHash);
 
   // Storage State
   const [savedWordIds, setSavedWordIds] = useState<string[]>(StorageService.getSavedWordIds());
@@ -123,6 +136,7 @@ export function App() {
     if (tab === 'reader') {
       setReaderSurah(undefined);
       setReaderJuz(undefined);
+      setReaderPage(undefined);
     }
     if (window.location.hash !== `#/${tab}`) {
       window.history.pushState(null, '', `#/${tab}`);
@@ -136,6 +150,7 @@ export function App() {
       setActiveTabState(tabFromHash());
       setReaderSurah(surahFromHash());
       setReaderJuz(juzFromHash());
+      setReaderPage(pageFromHash());
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -153,6 +168,7 @@ export function App() {
   const openSurah = (surah: number | undefined) => {
     setReaderSurah(surah);
     setReaderJuz(undefined);
+    setReaderPage(undefined);
     setActiveTabState('reader');
     window.history.pushState(null, '', surah ? `#/reader/${surah}` : '#/reader');
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
@@ -161,9 +177,18 @@ export function App() {
   const openJuz = (juz: number | undefined) => {
     setReaderJuz(juz);
     setReaderSurah(undefined);
+    setReaderPage(undefined);
     setActiveTabState('reader');
     window.history.pushState(null, '', juz ? `#/reader/juz/${juz}` : '#/reader');
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  };
+
+  const openPage = (page: number | undefined) => {
+    setReaderPage(page);
+    setReaderSurah(undefined);
+    setReaderJuz(undefined);
+    setActiveTabState('reader');
+    window.history.pushState(null, '', page ? `#/reader/page/${page}` : '#/reader');
   };
 
   const openVerse = (key: string) => {
@@ -318,7 +343,7 @@ export function App() {
           <main className="flex-1 px-4 sm:px-6 lg:px-10 py-6 sm:py-8 w-full max-w-6xl mx-auto">
             {!online && (
               <p role="status" className="mb-4 text-xs sm:text-sm rounded-xl px-4 py-2.5 bg-amber-50 dark:bg-amber-950/25 ring-1 ring-amber-200 dark:ring-amber-900/60 text-amber-900 dark:text-amber-200">
-                You're offline. Surahs, tafsir and recitations you've opened before still work.
+                {t('offline')}
               </p>
             )}
             <div key={`${activeTab}:${settings.language}`} className="animate-fadeIn">
@@ -337,6 +362,15 @@ export function App() {
                           streak={streak}
                           onStartReview={() => openFlashcards(dueReviewCount > 0 ? 'due' : NEXT_COURSE_DECK)}
                           onOpenCourse={() => setActiveTab('course')}
+                        />
+                      )}
+                      {!hasActiveFilters && (
+                        <TodayPlan
+                          dueReviewCount={dueReviewCount}
+                          onReview={() => openFlashcards('due')}
+                          onLearnCourseWords={() => openFlashcards(NEXT_COURSE_DECK)}
+                          onStudySurah={(s) => openFlashcards(`surah-${s}`)}
+                          onReadSurah={openSurah}
                         />
                       )}
 
@@ -424,6 +458,8 @@ export function App() {
                       onSelectSurah={openSurah}
                       juz={readerJuz}
                       onSelectJuz={openJuz}
+                      page={readerPage}
+                      onSelectPage={openPage}
                       settings={settings}
                       onOpenVerse={openVerse}
                       onOpenRoot={openRoot}

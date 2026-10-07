@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown, Info } from 'lucide-react';
 import { fetchSurahInfo } from '../services/surahInfo';
 import { useAsync } from './QuranWordBits';
+import { t } from '../i18n/strings';
 
 /** "About this surah": a one-paragraph summary that opens into the full introduction. */
 export const SurahInfoCard: React.FC<{ surah: number }> = ({ surah }) => {
@@ -20,7 +21,7 @@ export const SurahInfoCard: React.FC<{ surah: number }> = ({ surah }) => {
       >
         <div className="min-w-0 space-y-1">
           <div className="font-bold text-stone-900 dark:text-stone-100 text-sm flex items-center gap-1.5">
-            <Info className="w-4 h-4 text-emerald-700 dark:text-emerald-300" /> About this surah
+            <Info className="w-4 h-4 text-emerald-700 dark:text-emerald-300" /> {t('aboutSurah')}
           </div>
           {!open && (
             <p dir={info.rtl ? 'rtl' : undefined} className="text-xs text-stone-500 dark:text-stone-400 line-clamp-2">

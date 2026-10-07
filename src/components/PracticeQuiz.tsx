@@ -5,7 +5,8 @@ import { getCoverageList, fetchWordAt, formatRoot, playAudio, tagGroup, Coverage
 import { knownLemmasStore, useKnownLemmas } from '../hooks/useKnownLemmas';
 import { isAnyModalOpen } from '../hooks/useModalBehavior';
 import { buildStages, courseCardId, spokenView, DictionaryForm } from './courseWords';
-import { useAsync, LoadingBlock, ErrorBlock, WordAudioButton, RecitedVerseText } from './QuranWordBits';
+import { useAsync, LoadingBlock, ErrorBlock, WordAudioButton, RecitedVerseText, useSampleVerse } from './QuranWordBits';
+import { VerseAudioBar } from './VerseAudioBar';
 
 const QUIZ_LENGTH = 10;
 /** Extra course words loaded alongside a quiz's own, to draw wrong answers from. */
@@ -15,7 +16,12 @@ const TOO_FEW_WORDS = 'Not enough words loaded';
 const LESSONS_SOURCE = 'lessons';
 const KNOWN_SOURCE = 'known';
 
-type QuizKind = 'lesson' | 'meaning' | 'arabic' | 'listen';
+type QuizKind = 'lesson' | 'meaning' | 'arabic' | 'listen' | 'listen-arabic';
+
+/** Mixed: reading and listening questions; listening: every word heard, not seen, until answered. */
+type QuizStyle = 'mixed' | 'listening';
+
+const LISTENING: QuizKind[] = ['listen', 'listen-arabic'];
 
 /** One multiple-choice question, from a detailed lesson or generated from an 85% Course word. */
 interface QuizItem {
@@ -35,6 +41,10 @@ interface QuizItem {
   reference: string;
   /** The course word's sample verse, shown with the answer. */
   verse?: { verse: QVerse; marked: number };
+  /** The verse the question is about ("2:255"), recited with the answer */
+  verseKey?: string;
+  /** A lesson's word as written in its verse, to mark it there */
+  highlighted?: string;
   details?: string;
 }
 
@@ -75,7 +85,9 @@ const lessonQuiz = (words: QuranWord[]): QuizItem[] =>
           correctIndex: q.correctIndex,
           explanation: q.explanation,
           misconceptions: q.misconceptions,
-          reference: `Surah ${w.primaryVerse.surahNameTransliteration} ${w.primaryVerse.surahNumber}:${w.primaryVerse.ayahNumber}`
+          reference: `Surah ${w.primaryVerse.surahNameTransliteration} ${w.primaryVerse.surahNumber}:${w.primaryVerse.ayahNumber}`,
+          verseKey: `${w.primaryVerse.surahNumber}:${w.primaryVerse.ayahNumber}`,
+          highlighted: w.primaryVerse.highlightedWord
         })
       )
     )
@@ -89,7 +101,7 @@ const sameText = (a: string, b: string) => a.trim().toLowerCase() === b.trim().t
  * recited in the sample verse and Quran.com's gloss of it. Wrong answers are other words of the same stage,
  * of the same kind (verb, noun, particle) where possible, never sharing the answer's meaning or spelling.
  */
-const courseQuiz = async (words: CoverageWord[]): Promise<QuizItem[]> => {
+const courseQuiz = async (words: CoverageWord[], style: QuizStyle = 'mixed'): Promise<QuizItem[]> => {
   const picked = shuffle(words).slice(0, QUIZ_LENGTH + DISTRACTOR_POOL);
   const settled = await Promise.allSettled(picked.map((w) => fetchWordAt(w.sample)));
   const loaded = picked.flatMap((word, i) => {
@@ -101,7 +113,8 @@ const courseQuiz = async (words: CoverageWord[]): Promise<QuizItem[]> => {
   });
   if (loaded.length < 4) throw new Error(TOO_FEW_WORDS);
 
-  const kinds: QuizKind[] = ['meaning', 'arabic', 'listen'];
+  // Listening asks for the meaning of the word heard, then for its spelling among written words
+  const kinds: QuizKind[] = style === 'listening' ? LISTENING : ['meaning', 'arabic', 'listen'];
   return loaded.slice(0, Math.min(QUIZ_LENGTH, loaded.length - 3)).map((q, i) => {
     const others = shuffle(
       loaded.filter(
@@ -115,7 +128,7 @@ const courseQuiz = async (words: CoverageWord[]): Promise<QuizItem[]> => {
       .slice(0, 3);
     const choices = shuffle([q, ...distractors]);
     let kind = kinds[i % kinds.length];
-    if (kind === 'listen' && !q.sample.word?.audioUrl) kind = 'meaning';
+    if (LISTENING.includes(kind) && !q.sample.word?.audioUrl) kind = kind === 'listen' ? 'meaning' : 'arabic';
     const [s, a, w] = q.word.sample.split(':').map(Number);
 
     return {
@@ -126,14 +139,17 @@ const courseQuiz = async (words: CoverageWord[]): Promise<QuizItem[]> => {
           ? `Which word means “${q.meaning}”?`
           : kind === 'listen'
           ? 'Listen to the word. What does it mean?'
+          : kind === 'listen-arabic'
+          ? 'Listen to the word. Which one did you hear?'
           : 'What does this word mean?',
       arabic: q.arabic,
       transliteration: q.sample.word?.transliteration,
       audioUrl: q.sample.word?.audioUrl,
       lemma: q.differs ? q.word.lemma : undefined,
-      options: choices.map((c) => (kind === 'arabic' ? c.arabic : c.meaning)),
+      options: choices.map((c) => (kind === 'arabic' || kind === 'listen-arabic' ? c.arabic : c.meaning)),
       correctIndex: choices.indexOf(q),
       reference: `${s}:${a}`,
+      verseKey: `${s}:${a}`,
       verse: { verse: q.sample.verse, marked: w - 1 },
       details: `${q.word.appearances.toLocaleString()}× in the Quran${q.word.root ? ` · root ${formatRoot(q.word.root)}` : ''}`
     };
@@ -154,6 +170,7 @@ export const PracticeQuiz: React.FC<PracticeQuizProps> = ({ words, onRateWord })
   const knownWords = useMemo(() => course.data?.words.filter((w) => known.has(w.lemma)) ?? [], [course.data, known]);
   const [source, setSource] = useState<string | null>(null);
   const [round, setRound] = useState(0);
+  const [style, setStyle] = useState<QuizStyle>('mixed');
 
   // Start on the stage the learner is up to, or the lessons' questions if the course can't load
   useEffect(() => {
@@ -168,7 +185,7 @@ export const PracticeQuiz: React.FC<PracticeQuizProps> = ({ words, onRateWord })
 
   // Each quiz is tagged with the selection it was made for. useAsync keeps the previous result until the
   // next one arrives, and a quiz shown under the wrong selection would also keep its questions.
-  const quizId = `${source}:${round}`;
+  const quizId = `${source}:${style}:${round}`;
   const quiz = useAsync(async (): Promise<{ id: string; items: QuizItem[] } | null> => {
     if (!source) return null;
     if (source === LESSONS_SOURCE) return { id: quizId, items: lessonQuiz(words) };
@@ -177,8 +194,8 @@ export const PracticeQuiz: React.FC<PracticeQuizProps> = ({ words, onRateWord })
       source === KNOWN_SOURCE
         ? all.filter((w) => knownLemmasStore.get().has(w.lemma))
         : buildStages(all, totalWords)[Number(source.replace('stage-', ''))]?.words ?? [];
-    return { id: quizId, items: await courseQuiz(pool) };
-  }, [source, round]);
+    return { id: quizId, items: await courseQuiz(pool, style) };
+  }, [source, style, round]);
   const current = quiz.data?.id === quizId ? quiz.data.items : undefined;
 
   const header = (
@@ -210,6 +227,22 @@ export const PracticeQuiz: React.FC<PracticeQuizProps> = ({ words, onRateWord })
             <option value={LESSONS_SOURCE}>Lesson questions ({words.reduce((n, w) => n + w.practiceQuestions.length, 0)})</option>
           </optgroup>
         </select>
+        {source !== LESSONS_SOURCE && (
+          <span className="inline-flex rounded-lg bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 p-0.5" role="group" aria-label="Question type">
+            {(['mixed', 'listening'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setStyle(s)}
+                aria-pressed={style === s}
+                className={`px-2 py-1 rounded-md font-semibold cursor-pointer ${
+                  style === s ? 'bg-white dark:bg-stone-900 text-emerald-900 dark:text-emerald-200 shadow-sm' : 'text-stone-500 dark:text-stone-400'
+                }`}
+              >
+                {s === 'mixed' ? 'Mixed' : 'Listening'}
+              </button>
+            ))}
+          </span>
+        )}
         <button
           onClick={() => setRound((n) => n + 1)}
           disabled={!source || quiz.loading}
@@ -268,6 +301,11 @@ const QuizRun: React.FC<{
   const [isFinished, setIsFinished] = useState(false);
 
   const currentItem = questionList[currentIndex];
+
+  // A listening question has nothing to read until answered, so it speaks first (after the learner's click)
+  useEffect(() => {
+    if (currentItem && LISTENING.includes(currentItem.kind) && currentItem.audioUrl) playAudio(currentItem.audioUrl);
+  }, [currentItem]);
 
   const handleSelect = (index: number) => {
     if (isSubmitted) return;
@@ -390,7 +428,7 @@ const QuizRun: React.FC<{
   }
 
   const answeredCorrectly = selectedOption === currentItem.correctIndex;
-  const hideWord = currentItem.kind === 'listen' && !isSubmitted;
+  const hideWord = LISTENING.includes(currentItem.kind) && !isSubmitted;
   const showWord = currentItem.kind !== 'arabic' || isSubmitted;
 
   return (
@@ -481,7 +519,7 @@ const QuizRun: React.FC<{
                   <span className="w-6 h-6 rounded-full bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 font-bold text-xs flex items-center justify-center shrink-0 border border-stone-200 dark:border-stone-700">
                     {String.fromCharCode(65 + idx)}
                   </span>
-                  {currentItem.kind === 'arabic' ? (
+                  {currentItem.kind === 'arabic' || currentItem.kind === 'listen-arabic' ? (
                     <span dir="rtl" className="font-quran-amiri text-2xl font-bold leading-relaxed">
                       {opt}
                     </span>
@@ -513,11 +551,16 @@ const QuizRun: React.FC<{
                   marked={currentItem.verse.marked}
                   className="text-lg text-amber-100 text-right leading-loose"
                 />
-                <p className="text-emerald-100 italic text-[11px]">
+                <p dir="auto" className="text-emerald-100 italic text-[11px]">
                   “{currentItem.verse.verse.translation}” ({currentItem.reference})
                 </p>
               </div>
             )}
+            {!currentItem.verse && currentItem.verseKey && (
+              <LessonVerse verseKey={currentItem.verseKey} highlighted={currentItem.highlighted} reference={currentItem.reference} />
+            )}
+            {/* Hear the verse, with each word lit as it is recited (and its translation, if chosen) */}
+            {currentItem.verseKey && <VerseAudioBar verseKey={currentItem.verseKey} />}
             {currentItem.details && <p className="text-stone-500 dark:text-stone-400">{currentItem.details}</p>}
 
             {/* Misconception note */}
@@ -556,5 +599,20 @@ const QuizRun: React.FC<{
         </div>
       </div>
     </>
+  );
+};
+
+/** A lesson question's verse in full, its word marked, following the recitation; nothing until it loads. */
+const LessonVerse: React.FC<{ verseKey: string; highlighted?: string; reference: string }> = ({ verseKey, highlighted, reference }) => {
+  const sample = useSampleVerse(verseKey, highlighted ?? '');
+  // The previous question's verse stays loaded until this one arrives
+  if (!sample || sample.verse.key !== verseKey) return null;
+  return (
+    <div className="verse-panel rounded-xl p-3 space-y-1.5">
+      <RecitedVerseText verse={sample.verse} marked={sample.marked} className="text-lg text-amber-100 text-right leading-loose" />
+      <p dir="auto" className="text-emerald-100 italic text-[11px]">
+        “{sample.verse.translation}” ({reference})
+      </p>
+    </div>
   );
 };

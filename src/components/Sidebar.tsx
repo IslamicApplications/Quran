@@ -1,3 +1,4 @@
+import { t } from '../i18n/strings';
 import React from 'react';
 import {
   BookOpen,
@@ -44,35 +45,35 @@ interface SidebarProps {
 
 const buildNavGroups = (dueReviewCount: number, savedCount: number): { title: string; items: NavItem[] }[] => [
   {
-    title: 'Learn',
+    title: t('learn'),
     items: [
-      { id: 'dictionary', label: 'Vocabulary', icon: BookOpen },
-      { id: 'reader', label: 'Surah Reader', icon: BookOpenText },
-      { id: 'course', label: '85% Course', icon: Target, accent: true },
-      { id: 'top100', label: 'Top 100 Words', icon: Flame },
-      { id: 'comparisons', label: 'Verse Nuances', icon: Compass }
+      { id: 'dictionary', label: t('vocabulary'), icon: BookOpen },
+      { id: 'reader', label: t('surahReader'), icon: BookOpenText },
+      { id: 'course', label: t('course'), icon: Target, accent: true },
+      { id: 'top100', label: t('top100'), icon: Flame },
+      { id: 'comparisons', label: t('verseNuances'), icon: Compass }
     ]
   },
   {
-    title: 'Analyze',
+    title: t('analyze'),
     items: [
-      { id: 'wordbyword', label: 'Word by Word', icon: Type },
-      { id: 'treebank', label: 'Treebank (إعراب)', icon: Network },
-      { id: 'concordance', label: 'Root Dictionary', icon: BookMarked }
+      { id: 'wordbyword', label: t('wordByWord'), icon: Type },
+      { id: 'treebank', label: t('treebank'), icon: Network },
+      { id: 'concordance', label: t('rootDictionary'), icon: BookMarked }
     ]
   },
   {
-    title: 'Practice',
+    title: t('practice'),
     items: [
-      { id: 'flashcards', label: 'Flashcards', icon: Layers, badge: dueReviewCount },
-      { id: 'quiz', label: 'Practice Quiz', icon: GraduationCap }
+      { id: 'flashcards', label: t('flashcards'), icon: Layers, badge: dueReviewCount },
+      { id: 'quiz', label: t('quiz'), icon: GraduationCap }
     ]
   },
   {
-    title: 'You',
+    title: t('you'),
     items: [
-      { id: 'study-lists', label: 'Saved Lists', icon: Bookmark, badge: savedCount },
-      { id: 'progress', label: 'Progress', icon: BarChart3 }
+      { id: 'study-lists', label: t('savedLists'), icon: Bookmark, badge: savedCount },
+      { id: 'progress', label: t('progress'), icon: BarChart3 }
     ]
   }
 ];
@@ -144,25 +145,23 @@ const ReviewCard: React.FC<{ dueReviewCount: number; streak: number; onStart: ()
       <div className="flex items-center justify-between text-[11px] text-emerald-200 font-medium">
         <span className="flex items-center gap-1">
           <Clock className="w-3.5 h-3.5" />
-          Today
+          {t('today')}
         </span>
         {streak > 0 && (
           <span className="flex items-center gap-1 text-amber-300 font-bold">
             <Flame className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-            {streak}-day streak
+            {t('streak')(streak)}
           </span>
         )}
       </div>
       <p className="text-sm font-semibold leading-snug">
-        {dueReviewCount > 0
-          ? `${dueReviewCount} word${dueReviewCount === 1 ? '' : 's'} ready for review`
-          : 'You’re all caught up. Learn a new word today.'}
+        {dueReviewCount > 0 ? t('readyForReview')(dueReviewCount) : t('caughtUp')}
       </p>
       <button
         onClick={onStart}
         className="w-full mt-1 flex items-center justify-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 text-xs font-bold py-2 rounded-xl transition-colors cursor-pointer"
       >
-        {dueReviewCount > 0 ? 'Start review' : 'Open flashcards'}
+        {dueReviewCount > 0 ? t('startReview') : t('openFlashcards')}
         <ArrowRight className="w-3.5 h-3.5" />
       </button>
     </div>

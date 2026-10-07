@@ -15,6 +15,7 @@ import { AppSettings } from '../types';
 import { StorageService, getTodayDateString } from '../services/storage';
 import { useModalBehavior } from '../hooks/useModalBehavior';
 import { useTheme, ThemePreference } from '../hooks/useTheme';
+import { TranslationSelect } from './TranslationSelect';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -189,6 +190,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div className="font-sample-scheherazade text-lg text-emerald-900 dark:text-emerald-200 mt-1">بِسْمِ ٱللَّهِ</div>
               </button>
             </div>
+          </div>
+
+          {/* Verse translation for the chosen language */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700">
+            <div className="text-xs font-semibold text-stone-800 dark:text-stone-200">Verse translation</div>
+            <TranslationSelect language={settings.language} />
           </div>
 
           {/* Transliteration Toggle */}

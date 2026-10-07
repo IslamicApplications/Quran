@@ -24,7 +24,8 @@ import {
   translationSource,
   fetchChapterPage,
   playAudio,
-  englishVerseAudioUrl,
+  translationAudio,
+  contentLanguage,
   QVerse,
   QWord,
   SurahVocab
@@ -40,6 +41,9 @@ import { JuzList, JuzView, juzRangeLabel, readLastJuz } from './JuzReader';
 import { TafsirPanel } from './TafsirPanel';
 import { SurahInfoCard } from './SurahInfoCard';
 import { t } from '../i18n/strings';
+import { TranslationSelect } from './TranslationSelect';
+import { DownloadButton } from './DownloadButton';
+import { downloadSurah } from '../services/offline';
 import { readTajweedPreference, saveTajweedPreference } from '../services/tajweed';
 import { MushafPageView, readLastMushafPage } from './MushafPageView';
 import { MemorizePanel, UnderstandPanel, defaultMemorize, type MemorizeSettings, type PracticeMode } from './PracticeControls';
@@ -383,7 +387,7 @@ const SurahView: React.FC<
       const memorizing = mode === 'memorize';
       // Read at play time, so a reciter chosen mid-surah takes over from the next verse
       const reciter = reciterStore.get();
-      const audio = playAudio(part === 'arabic' ? reciterAudioUrl(key, reciter) : englishVerseAudioUrl(key));
+      const audio = playAudio(part === 'arabic' ? reciterAudioUrl(key, reciter) : translationAudio(key).url);
       audioRef.current = audio;
       if (part === 'arabic') followRecitation(audio, key, reciter);
       audio.playbackRate = memorizing ? m.speed : 1;
@@ -472,6 +476,12 @@ const SurahView: React.FC<
         </div>
       </section>
 
+      <DownloadButton
+        id={`surah:${surah}`}
+        download={(onProgress, signal) => downloadSurah(surah, onProgress, signal)}
+        className="justify-center"
+      />
+
       <SurahInfoCard surah={surah} />
 
       {/* Words to learn */}
@@ -526,6 +536,7 @@ const SurahView: React.FC<
       <div className="glass sticky top-16 z-20 -mx-1 px-1 py-2 flex flex-wrap items-center gap-2 rounded-2xl">
         <ToggleChip active={highlight} onClick={() => setHighlight(!highlight)} icon={Highlighter} label={t('highlightUnknown')} />
         <ToggleChip active={showTranslation} onClick={() => setShowTranslation(!showTranslation)} icon={Languages} label={t('translation')} />
+        {showTranslation && <TranslationSelect language={contentLanguage()} />}
         <ToggleChip
           active={tajweed}
           onClick={() => {
@@ -556,7 +567,7 @@ const SurahView: React.FC<
             }}
             options={[
               { id: 'arabic', label: 'Arabic' },
-              { id: 'english', label: 'English' },
+              { id: 'english', label: translationAudio(`${surah}:1`).language },
               { id: 'both', label: 'Both' }
             ]}
           />
@@ -721,6 +732,9 @@ const SurahView: React.FC<
                         )}
                         {v.translation}
                       </p>
+                    )}
+                    {showTranslation && practice !== 'understand' && v.translationNotes && (
+                      <p dir="auto" className="text-xs text-stone-500 dark:text-stone-400 whitespace-pre-line">{v.translationNotes}</p>
                     )}
                     <VerseNote verseKey={v.key} />
                     {tafsirKey === v.key && <TafsirPanel verseKey={v.key} className="animate-fadeIn" />}

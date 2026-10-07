@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Play, Pause, Loader2, Languages } from 'lucide-react';
-import { playAudio, englishVerseAudioUrl } from '../services/quranCom';
+import { playAudio, translationAudio } from '../services/quranCom';
 import { reciterAudioUrl, reciterName, useReciter } from '../services/reciters';
 import { ReciterSelect } from './ReciterSelect';
 import { followRecitation } from '../hooks/useRecitedWord';
@@ -14,15 +14,17 @@ interface VerseAudioBarProps {
   arabicReciter?: string;
 }
 
-const MODES: { id: Mode; label: string }[] = [
+/** The audio choices, naming the language the chosen translation is spoken in */
+const modesFor = (spoken: string): { id: Mode; label: string }[] => [
   { id: 'arabic', label: 'Arabic' },
-  { id: 'english', label: 'English' },
-  { id: 'both', label: 'Arabic + English' }
+  { id: 'english', label: spoken },
+  { id: 'both', label: `Arabic + ${spoken}` }
 ];
 
 /**
- * Verse recitation with an English option: Saheeh International read by Ibrahim Walk (EveryAyah.com).
- * "Arabic + English" plays the recitation and then its translation, useful for listening practice.
+ * Verse recitation with a spoken translation: the chosen QuranEnc translation's own recording where it has one,
+ * else Saheeh International in English, read by Ibrahim Walk (EveryAyah.com). "Arabic + …" plays the recitation
+ * and then its translation, useful for listening practice.
  */
 export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
   verseKey,
@@ -37,7 +39,9 @@ export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const arabic = arabicUrl || reciterAudioUrl(verseKey, reciter);
-  const english = englishVerseAudioUrl(verseKey);
+  const spokenTranslation = translationAudio(verseKey);
+  const english = spokenTranslation.url;
+  const MODES = modesFor(spokenTranslation.language);
 
   const stop = () => {
     if (audioRef.current) {
@@ -76,7 +80,7 @@ export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
   };
 
   const nowPlaying =
-    part === 'arabic' ? `${arabicReciter} (Arabic)` : 'Ibrahim Walk (English, Saheeh International)';
+    part === 'arabic' ? `${arabicReciter} (Arabic)` : `${spokenTranslation.reader} (${spokenTranslation.language})`;
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 p-2 pr-3 rounded-2xl bg-white dark:bg-stone-900 ring-1 ring-stone-200/80 dark:ring-stone-700/80 text-xs">
@@ -101,7 +105,7 @@ export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
         </button>
         <div className="min-w-0">
           <div className="font-semibold text-stone-800 dark:text-stone-200 truncate">
-            {status === 'idle' ? (mode === 'english' ? 'Ibrahim Walk' : arabicReciter) : nowPlaying}
+            {status === 'idle' ? (mode === 'english' ? spokenTranslation.reader : arabicReciter) : nowPlaying}
           </div>
           <div className={`text-[11px] ${status === 'error' ? 'text-amber-700 dark:text-amber-300' : 'text-stone-500 dark:text-stone-400'}`}>
             {status === 'error'
@@ -109,8 +113,8 @@ export const VerseAudioBar: React.FC<VerseAudioBarProps> = ({
               : mode === 'arabic'
               ? 'Arabic recitation'
               : mode === 'english'
-              ? 'English translation · EveryAyah.com'
-              : 'Recitation, then English translation'}
+              ? `Spoken translation (${spokenTranslation.language})`
+              : `Recitation, then the ${spokenTranslation.language} translation`}
           </div>
         </div>
       </div>
